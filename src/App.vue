@@ -8,12 +8,13 @@
           #="{ year, month, date }"
           :default-value="calendarTime"
           :value="calendarTime"
+          @update:value="clickCalendarItem"
         >
           {{ year }}-{{ month }}-{{ date }}
           <br>
           <n-popover trigger="hover" v-for="(item, index) in getTodoList(year, month, date)" :key="index">
             <template #trigger>
-              <span class="arrangement" v-if="item.is_finished === 0" :style="'background-color: #' + item.style">
+              <span class="arrangement" v-if="item.is_finished === 0" :style="'background-color: ' + item.style">
                 {{item.title}}&ensp;&ensp;{{item.time}}
                 <br>
               </span>
@@ -37,6 +38,34 @@
           </n-popover>
         </n-calendar>
       </div>
+      <!-- 添加日程用的drawer -->
+      <n-drawer v-model:show="isAddItemFormShow" :width="520" placement="left">
+        <n-drawer-content closable>
+          <template #header>
+            添加新日程到&ensp;{{selectedDate}}
+          </template>
+          <n-form :model="addItemForm" label-placement="top" :rules="addItemFormRules" ref="addFormRef">
+            <n-form-item label="标题" path="title">
+              <n-input v-model:value="addItemForm.title" placeholder="输入日程标题" />
+            </n-form-item>
+            <n-form-item label="内容" path="content">
+              <n-input v-model:value="addItemForm.content" placeholder="输入日程内容" type="textarea" />
+            </n-form-item>
+            <!-- <n-form-item label="时间" path="time">
+              <n-time-picker v-model:value="addItemForm.time" placeholder="选择时间" format="H:mm" value-format />
+            </n-form-item> -->
+            <n-form-item label="时间" path="time">
+              <n-input v-model:value="addItemForm.time" placeholder="输入时间" />
+            </n-form-item>
+            <n-form-item label="标记" path="style">
+              <n-color-picker v-model:value="addItemForm.style" :show-alpha="false" />
+            </n-form-item>
+            <n-form-item>
+              <n-button type="primary" @click="addItemCalendar">确认添加</n-button>
+            </n-form-item>
+          </n-form>
+        </n-drawer-content>
+      </n-drawer>
       <!-- ====================================================================================== -->
       <!-- ====================================================================================== -->
       <!-- ====================================================================================== -->
@@ -45,7 +74,7 @@
 </template>
 
 <script>
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, reactive, ref } from 'vue'
 import MainLoading from './components/MainLoading.vue'
 import { zhCN, dateZhCN } from 'naive-ui'
 import sqlite3 from 'sqlite3'
@@ -58,7 +87,7 @@ const databaseUrl = './easytodo_DB.db'
 
 var DB = null
 
-// 全局化配置
+// ======================================================= 全局化配置
 function configHandler () {
   return {
     zhCN,
@@ -66,14 +95,39 @@ function configHandler () {
   }
 }
 
-// 管理日历的函数
+// ======================================================= 管理日历的函数
 function canlendarHandler () {
 
   let data = []
 
   const time = Date.now()
   const calendarTime = ref(time)
+  const selectedDate = ref('')
   const isCalendarDataPrepared = ref(false)
+  const addFormRef = ref(null)
+  // 用于添加日程的表单
+  const addItemForm = reactive({
+    title: '',
+    content: '',
+    time: '',
+    date: '',
+    style: '#deb887',
+    is_finished: 0
+  })
+  // 添加日程表单的校验规则
+  const addItemFormRules = {
+    title: [
+      { required: true, message: '请输入日程标题', trigger: 'blur' }
+    ],
+    time: [
+      { required: true, message: '请选择日程时间', trigger: 'blur' },
+      { pattern: /^([0-9]|1[0-9]|2[0-3]):([0-5][0-9])$/, message: '请输入正确的时间格式，如 1:03 或 23:00', trigger: 'blur' }
+    ],
+    style: [
+      { required: true, message: '请选择日程标记', trigger: 'blur' }
+    ]
+  }
+  const isAddItemFormShow = ref(false)
 
   // 从数据库获取 todolist 数据
   function getTodoListFromDB () {
@@ -103,6 +157,7 @@ function canlendarHandler () {
     })
   })
 
+  // 获取日历每个单元格的日程
   const getTodoList = (year, month, date) => {
     const dateStr = `${year}-${month}-${date}`
     const list = []
@@ -114,6 +169,7 @@ function canlendarHandler () {
     return list
   }
 
+  // 更改日程完成情况
   const changeFinish = (item, flag) => {
     for (let i = 0; i < data.length; i++) {
       if (JSON.stringify(item) === JSON.stringify(data[i])) {
@@ -137,14 +193,66 @@ function canlendarHandler () {
     })
   }
 
+  // 点击每个日期的时候发生的东西
+  const clickCalendarItem = (timestamp, {year, month, date}) => {
+    calendarTime.value = timestamp
+    selectedDate.value = `${year}-${month}-${date}`
+    addItemForm.date = `${year}-${month}-${date}`
+    isAddItemFormShow.value = true
+  }
+
+  // 添加日程
+  const addItemCalendar = () => {
+    addFormRef.value?.validate((errors) => {
+      console.log(errors)
+      if (!errors) {
+        console.log('Valid')
+        console.log(addItemForm)
+        // 校验成功，添加到数据库
+        let insertStr = 'insert into todolist (title, content, time, date, style, is_finished) values ("' + addItemForm.title + '", "' + addItemForm.content + '", "' + addItemForm.time + '", "' + addItemForm.date + '", "' + addItemForm.style + '", ' + addItemForm.is_finished + ')'
+        DB.run(insertStr, (err) => {
+          if (err) {
+            console.log(err)
+            return
+          }
+          getTodoListFromDB().then(res => {
+            data = res
+            // 用于刷新
+            refreshCalendarData()
+            isAddItemFormShow.value = false
+            // 重置表单
+            addItemForm.title = ''
+            addItemForm.content = ''
+            addItemForm.time = ''
+            addItemForm.date = ''
+            addItemForm.style = '#deb887'
+            addItemForm.is_finished = 0
+          }).catch(e => {
+            console.log(e)
+          })
+        })
+      } else {
+        console.log('errors', errors)
+      }
+    })
+  }
+
   return {
     calendarTime,
     getTodoList,
     isCalendarDataPrepared,
-    changeFinish
+    changeFinish,
+    addItemForm,
+    isAddItemFormShow,
+    selectedDate,
+    clickCalendarItem,
+    addItemCalendar,
+    addItemFormRules,
+    addFormRef
   }
 }
 
+// ======================================================= export default
 export default {
   components: {
     MainLoading
@@ -155,7 +263,7 @@ export default {
     
     const loading = ref(true)
 
-    const { calendarTime, getTodoList, isCalendarDataPrepared, changeFinish } = canlendarHandler()
+    const { calendarTime, getTodoList, isCalendarDataPrepared, changeFinish, addItemForm, isAddItemFormShow, selectedDate, clickCalendarItem, addItemCalendar, addItemFormRules, addFormRef } = canlendarHandler()
     const { zhCN, dateZhCN } = configHandler()
 
     DB = new sqlite3.Database(databaseUrl, (err) => {
@@ -189,7 +297,14 @@ export default {
       changeFinish,
       isCalendarDataPrepared,
       zhCN,
-      dateZhCN
+      dateZhCN,
+      addItemForm,
+      isAddItemFormShow,
+      selectedDate,
+      clickCalendarItem,
+      addItemCalendar,
+      addItemFormRules,
+      addFormRef
     }
   }
 }
