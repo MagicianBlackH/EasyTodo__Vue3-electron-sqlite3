@@ -37,6 +37,9 @@
           </n-popover>
         </n-calendar>
       </div>
+      <!-- ====================================================================================== -->
+      <!-- ====================================================================================== -->
+      <!-- ====================================================================================== -->
     </n-config-provider>
   </n-message-provider>
 </template>
@@ -44,7 +47,7 @@
 <script>
 import { onMounted, onUnmounted, ref } from 'vue'
 import MainLoading from './components/MainLoading.vue'
-import { NCalendar, NConfigProvider, NPopover, NButton, NMessageProvider, darkTheme, zhCN, dateZhCN } from 'naive-ui'
+import { zhCN, dateZhCN } from 'naive-ui'
 import sqlite3 from 'sqlite3'
 
 // 这个databaseUrl是打包的时候用的
@@ -58,7 +61,6 @@ var DB = null
 // 全局化配置
 function configHandler () {
   return {
-    darkTheme,
     zhCN,
     dateZhCN
   }
@@ -99,15 +101,6 @@ function canlendarHandler () {
     }).catch(e => {
       console.log(e)
     })
-    /* DB.all('select * from todolist', (err, rows) => {
-      console.log('获取数据')
-      if (err) {
-        console.log(err)
-        return
-      }
-      data = rows
-      isCalendarDataPrepared.value = true
-    }) */
   })
 
   const getTodoList = (year, month, date) => {
@@ -154,12 +147,7 @@ function canlendarHandler () {
 
 export default {
   components: {
-    MainLoading,
-    NCalendar,
-    NPopover,
-    NConfigProvider,
-    NMessageProvider,
-    NButton
+    MainLoading
   },
   setup () {
 
