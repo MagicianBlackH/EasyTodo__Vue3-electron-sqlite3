@@ -12,7 +12,7 @@
         >
           {{ year }}-{{ month }}-{{ date }}
           <br>
-          <n-popover trigger="hover" v-for="(item, index) in getTodoList(year, month, date)" :key="index">
+          <n-popover trigger="hover" width="300px" v-for="(item, index) in getTodoList(year, month, date)" :key="index">
             <template #trigger>
               <span class="arrangement" v-if="item.is_finished === 0" :style="'background-color: ' + item.style">
                 {{item.title}}&ensp;&ensp;{{item.time}}
