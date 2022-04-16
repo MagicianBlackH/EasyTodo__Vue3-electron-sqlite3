@@ -3,7 +3,7 @@
     <MainLoading v-if="loading" />
     <n-config-provider :local="zhCN" :date-locale="dateZhCN">
       <!-- 日历视图 -->
-      <div id="calender" v-if="isCalendarDataPrepared">
+      <div id="calender" v-if="isCalendarDataPrepared" v-show="isCalendarView">
         <n-calendar
           #="{ year, month, date }"
           :default-value="calendarTime"
@@ -77,6 +77,11 @@
       <!-- ====================================================================================== -->
       <!-- ====================================================================================== -->
       <!-- ====================================================================================== -->
+      <!-- todoList视图 -->
+      <div id="todolist" v-show="!isCalendarView">
+        <div id="leftAddForm"></div>
+        <div id="rightTodoList"></div>
+      </div>
     </n-config-provider>
   </n-message-provider>
 </template>
@@ -160,7 +165,9 @@ function canlendarHandler () {
   onMounted(() => {
     getTodoListFromDB().then(res => {
       data = res
-      isCalendarDataPrepared.value = true
+      setTimeout(() => {
+        isCalendarDataPrepared.value = true
+      }, 3000)
     }).catch(e => {
       console.log(e)
     })
@@ -189,12 +196,12 @@ function canlendarHandler () {
 
   // 更改日程完成情况
   const changeFinish = (item, flag) => {
-    for (let i = 0; i < data.length; i++) {
+    /* for (let i = 0; i < data.length; i++) {
       if (JSON.stringify(item) === JSON.stringify(data[i])) {
         data[i].isFinished = flag
         break
       }
-    }
+    } */
     let updateStr = 'update todolist set is_finished = ' + flag + ' where id = ' + item.id
     DB.run(updateStr, (err) => {
       if (err) {
@@ -308,6 +315,8 @@ export default {
     
     const loading = ref(true)
 
+    const isCalendarView = ref(true)
+
     const { calendarTime, getTodoList, isCalendarDataPrepared, changeFinish, addItemForm, isAddItemFormShow, selectedDate, clickCalendarItem, addItemCalendar, addItemFormRules, addFormRef, deleteItemCalendar } = canlendarHandler()
     const { zhCN, dateZhCN } = configHandler()
 
@@ -329,6 +338,7 @@ export default {
 
     return {
       loading,
+      isCalendarView,
       calendarTime,
       getTodoList,
       changeFinish,
@@ -380,29 +390,29 @@ export default {
     margin: 10px 0;
   }
   ::-webkit-scrollbar {
-  /*滚动条整体样式*/
-  width : 10px;  /*高宽分别对应横竖滚动条的尺寸*/
-  height: 1px;
+    /*滚动条整体样式*/
+    width: 3px;  /*高宽分别对应横竖滚动条的尺寸*/
+    height: 1px;
   }
   ::-webkit-scrollbar-thumb {
-  /*滚动条里面小方块*/
-  border-radius   : 10px;
-  background-color: rgb(139, 139, 139);
-  background-image: -webkit-linear-gradient(
-      45deg,
-      rgba(255, 255, 255, 0.2) 25%,
-      transparent 25%,
-      transparent 50%,
-      rgba(255, 255, 255, 0.2) 50%,
-      rgba(255, 255, 255, 0.2) 75%,
-      transparent 75%,
-      transparent
-  );
+    /*滚动条里面小方块*/
+    border-radius: 10px;
+    background-color: rgb(139, 139, 139);
+    background-image: -webkit-linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.2) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.2) 50%,
+        rgba(255, 255, 255, 0.2) 75%,
+        transparent 75%,
+        transparent
+    );
   }
   ::-webkit-scrollbar-track {
-  /*滚动条里面轨道*/
-  box-shadow   : inset 0 0 5px rgba(0, 0, 0, 0.2);
-  background   : #ededed;
-  border-radius: 10px;
+    /*滚动条里面轨道*/
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+    background: #ffffff;
+    border-radius: 10px;
   }
 </style>
