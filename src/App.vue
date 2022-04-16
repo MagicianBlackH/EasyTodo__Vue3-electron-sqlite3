@@ -90,7 +90,7 @@
         <div id="leftAddForm"></div>
         <div id="rightTodoList">
           <h2>任务列表</h2>
-          <TodoItem title="哈哈哈" content="我哈哈大笑" :isFinished="false" date="2022-4-16" time="23:05" style="\#00ff00" />
+          <TodoItem title="哈哈哈" content="我哈哈大笑" :isFinished="false" date="2022-4-16" time="23:05" :style="'#00ff00'" />
         </div>
       </div>
     </n-config-provider>
