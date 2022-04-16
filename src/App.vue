@@ -28,13 +28,21 @@
             <p>{{item.date}}&ensp;{{item.time}}</p>
             <span v-if="item.is_finished === 1" style="color: #18A058">
               已完成
+              <br>
             </span>
-            <n-button v-if="item.is_finished === 0" tertiary type="primary" @click="changeFinish(item, 1)">
-              完成
-            </n-button>
-            <n-button v-else-if="item.is_finished === 1" quaternary type="error" @click="changeFinish(item, 0)">
-              取消完成
-            </n-button>
+            <div style="display: flex; justify-content: space-between">
+              <n-button v-if="item.is_finished === 0" tertiary type="primary" @click="changeFinish(item, 1)">
+                完成
+              </n-button>
+              <n-button v-else-if="item.is_finished === 1" tertiary type="warning" @click="changeFinish(item, 0)">
+                取消完成
+              </n-button>
+              <n-button quaternary circle type="error" @click="deleteItemCalendar(item)">
+                <template #icon>
+                  <n-icon><delete-icon /></n-icon>
+                </template>
+              </n-button>
+            </div>
           </n-popover>
         </n-calendar>
       </div>
@@ -77,6 +85,7 @@
 import { onMounted, onUnmounted, reactive, ref } from 'vue'
 import MainLoading from './components/MainLoading.vue'
 import { zhCN, dateZhCN } from 'naive-ui'
+import {Delete24Regular as DeleteIcon} from '@vicons/fluent'
 import sqlite3 from 'sqlite3'
 
 // 这个databaseUrl是打包的时候用的
@@ -121,7 +130,7 @@ function canlendarHandler () {
     ],
     time: [
       { required: true, message: '请选择日程时间', trigger: 'blur' },
-      { pattern: /^([0-9]|1[0-9]|2[0-3]):([0-5][0-9])$/, message: '请输入正确的时间格式，如 1:03 或 23:00', trigger: 'blur' }
+      { pattern: /^((1|0)[0-9]|2[0-3]):([0-5][0-9])$/, message: '请输入正确的时间格式，范围 00:00-23:59', trigger: 'blur' }
     ],
     style: [
       { required: true, message: '请选择日程标记', trigger: 'blur' }
@@ -132,7 +141,7 @@ function canlendarHandler () {
   // 从数据库获取 todolist 数据
   function getTodoListFromDB () {
     return new Promise((resolve, reject) => {
-      DB.all('select * from todolist', (err, rows) => {
+      DB.all('select * from todolist order by date,time', (err, rows) => {
         if (err) {
           reject(err)
         } else {
@@ -237,6 +246,24 @@ function canlendarHandler () {
     })
   }
 
+  // 删除日程
+  const deleteItemCalendar = (item) => {
+    let deleteStr = 'delete from todolist where id = ' + item.id
+    DB.run(deleteStr, (err) => {
+      if (err) {
+        console.log(err)
+        return
+      }
+      getTodoListFromDB().then(res => {
+        data = res
+        // 用于刷新
+        refreshCalendarData()
+      }).catch(e => {
+        console.log(e)
+      })
+    })
+  }
+
   return {
     calendarTime,
     getTodoList,
@@ -248,14 +275,16 @@ function canlendarHandler () {
     clickCalendarItem,
     addItemCalendar,
     addItemFormRules,
-    addFormRef
+    addFormRef,
+    deleteItemCalendar
   }
 }
 
 // ======================================================= export default
 export default {
   components: {
-    MainLoading
+    MainLoading,
+    DeleteIcon
   },
   setup () {
 
@@ -263,7 +292,7 @@ export default {
     
     const loading = ref(true)
 
-    const { calendarTime, getTodoList, isCalendarDataPrepared, changeFinish, addItemForm, isAddItemFormShow, selectedDate, clickCalendarItem, addItemCalendar, addItemFormRules, addFormRef } = canlendarHandler()
+    const { calendarTime, getTodoList, isCalendarDataPrepared, changeFinish, addItemForm, isAddItemFormShow, selectedDate, clickCalendarItem, addItemCalendar, addItemFormRules, addFormRef, deleteItemCalendar } = canlendarHandler()
     const { zhCN, dateZhCN } = configHandler()
 
     DB = new sqlite3.Database(databaseUrl, (err) => {
@@ -277,14 +306,6 @@ export default {
         }, 3000)
       }
     })
-
-    /* onMounted(() => {
-      setTimeout(() => {
-        if (databaseFail) {
-          window.$message.error('抱歉，加载数据出现意外错误，请尝试重启程序')
-        }
-      }, 1000)   
-    }) */
 
     onUnmounted(() => {
       DB.close()
@@ -304,7 +325,8 @@ export default {
       clickCalendarItem,
       addItemCalendar,
       addItemFormRules,
-      addFormRef
+      addFormRef,
+      deleteItemCalendar
     }
   }
 }
