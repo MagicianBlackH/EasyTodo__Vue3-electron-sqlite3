@@ -4,6 +4,14 @@
     <n-config-provider :local="zhCN" :date-locale="dateZhCN">
       <!-- 日历视图 -->
       <div id="calender" v-if="isCalendarDataPrepared" v-show="isCalendarView">
+        <n-button color="#8a2be2" @click="isCalendarView = false">
+          <template #icon>
+            <n-icon>
+              <task-list-icon />
+            </n-icon>
+          </template>
+          任务视图
+        </n-button>
         <n-calendar
           #="{ year, month, date }"
           :default-value="calendarTime"
@@ -80,7 +88,10 @@
       <!-- todoList视图 -->
       <div id="todolist" v-show="!isCalendarView">
         <div id="leftAddForm"></div>
-        <div id="rightTodoList"></div>
+        <div id="rightTodoList">
+          <h2>任务列表</h2>
+          <TodoItem title="哈哈哈" content="我哈哈大笑" :isFinished="false" date="2022-4-16" time="23:05" style="\#00ff00" />
+        </div>
       </div>
     </n-config-provider>
   </n-message-provider>
@@ -89,8 +100,9 @@
 <script>
 import { onMounted, onUnmounted, reactive, ref } from 'vue'
 import MainLoading from './components/MainLoading.vue'
+import TodoItem from './components/TodoItem.vue'
 import { zhCN, dateZhCN } from 'naive-ui'
-import {Delete24Regular as DeleteIcon} from '@vicons/fluent'
+import {Delete24Regular as DeleteIcon, TaskListRtl24Regular as TaskListIcon} from '@vicons/fluent'
 import sqlite3 from 'sqlite3'
 
 // 这个databaseUrl是打包的时候用的
@@ -307,7 +319,9 @@ function canlendarHandler () {
 export default {
   components: {
     MainLoading,
-    DeleteIcon
+    TodoItem,
+    DeleteIcon,
+    TaskListIcon
   },
   setup () {
 
@@ -388,6 +402,13 @@ export default {
     display: flex;
     justify-content: space-between;
     margin: 10px 0;
+  }
+  #todolist {
+    display: flex;
+    justify-content: space-around;
+  }
+  #todolist > div {
+    width: 45%;
   }
   ::-webkit-scrollbar {
     /*滚动条整体样式*/
