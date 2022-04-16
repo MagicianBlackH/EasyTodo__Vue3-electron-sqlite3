@@ -54,10 +54,10 @@
           </template>
           <n-form :model="addItemForm" label-placement="top" :rules="addItemFormRules" ref="addFormRef">
             <n-form-item label="标题" path="title">
-              <n-input v-model:value="addItemForm.title" placeholder="输入日程标题" />
+              <n-input v-model:value="addItemForm.title" maxlength="10" show-count placeholder="输入日程标题" />
             </n-form-item>
             <n-form-item label="内容" path="content">
-              <n-input v-model:value="addItemForm.content" placeholder="输入日程内容" type="textarea" />
+              <n-input v-model:value="addItemForm.content" maxlength="50" show-count placeholder="输入日程内容" type="textarea" />
             </n-form-item>
             <n-form-item label="时间" path="time">
               <n-time-picker v-model:formatted-value="addItemForm.time" placeholder="选择时间" format="HH:mm" value-format="HH:mm" />
@@ -168,7 +168,16 @@ function canlendarHandler () {
 
   // 获取日历每个单元格的日程
   const getTodoList = (year, month, date) => {
-    const dateStr = `${year}-${month}-${date}`
+    // 补零操作，为了让数据库的数据能匹配到界面上的数据
+    /* console.log(typeof month) */
+    if (month < 10) {
+      month = '0' + month
+    }
+    if (date < 10) {
+      date = '0' + date
+    }
+    const dateStr = year + '-' + month + '-' + date
+    /* console.log(dateStr) */
     const list = []
     for (let i = 0; i < data.length; i++) {
       if (dateStr === data[i].date) {
@@ -204,6 +213,13 @@ function canlendarHandler () {
 
   // 点击每个日期的时候发生的东西
   const clickCalendarItem = (timestamp, {year, month, date}) => {
+    // 补零操作，为了让数据库的数据能匹配到界面上的数据
+    if (month < 10) {
+      month = '0' + month
+    }
+    if (date < 10) {
+      date = '0' + date
+    }
     calendarTime.value = timestamp
     selectedDate.value = `${year}-${month}-${date}`
     addItemForm.date = `${year}-${month}-${date}`
@@ -215,8 +231,8 @@ function canlendarHandler () {
     addFormRef.value?.validate((errors) => {
       console.log(errors)
       if (!errors) {
-        console.log('Valid')
-        console.log(addItemForm)
+        /* console.log('Valid')
+        console.log(addItemForm) */
         // 校验成功，添加到数据库
         let insertStr = 'insert into todolist (title, content, time, date, style, is_finished) values ("' + addItemForm.title + '", "' + addItemForm.content + '", "' + addItemForm.time + '", "' + addItemForm.date + '", "' + addItemForm.style + '", ' + addItemForm.is_finished + ')'
         DB.run(insertStr, (err) => {
