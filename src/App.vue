@@ -59,12 +59,12 @@
             <n-form-item label="内容" path="content">
               <n-input v-model:value="addItemForm.content" placeholder="输入日程内容" type="textarea" />
             </n-form-item>
-            <!-- <n-form-item label="时间" path="time">
-              <n-time-picker v-model:value="addItemForm.time" placeholder="选择时间" format="H:mm" value-format />
-            </n-form-item> -->
             <n-form-item label="时间" path="time">
-              <n-input v-model:value="addItemForm.time" placeholder="输入时间" />
+              <n-time-picker v-model:formatted-value="addItemForm.time" placeholder="选择时间" format="HH:mm" value-format="HH:mm" />
             </n-form-item>
+            <!-- <n-form-item label="时间" path="time">
+              <n-input v-model:value="addItemForm.time" placeholder="输入时间" />
+            </n-form-item> -->
             <n-form-item label="标记" path="style">
               <n-color-picker v-model:value="addItemForm.style" :show-alpha="false" />
             </n-form-item>
@@ -118,7 +118,7 @@ function canlendarHandler () {
   const addItemForm = reactive({
     title: '',
     content: '',
-    time: '',
+    time: '00:00',
     date: '',
     style: '#deb887',
     is_finished: 0
@@ -128,10 +128,10 @@ function canlendarHandler () {
     title: [
       { required: true, message: '请输入日程标题', trigger: 'blur' }
     ],
-    time: [
+    /* time: [
       { required: true, message: '请选择日程时间', trigger: 'blur' },
       { pattern: /^((1|0)[0-9]|2[0-3]):([0-5][0-9])$/, message: '请输入正确的时间格式，范围 00:00-23:59', trigger: 'blur' }
-    ],
+    ], */
     style: [
       { required: true, message: '请选择日程标记', trigger: 'blur' }
     ]
@@ -232,7 +232,7 @@ function canlendarHandler () {
             // 重置表单
             addItemForm.title = ''
             addItemForm.content = ''
-            addItemForm.time = ''
+            addItemForm.time = '00:00'
             addItemForm.date = ''
             addItemForm.style = '#deb887'
             addItemForm.is_finished = 0
