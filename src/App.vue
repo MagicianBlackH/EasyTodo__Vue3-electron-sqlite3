@@ -55,23 +55,23 @@
         </n-calendar>
       </div>
       <!-- 添加日程用的drawer -->
-      <n-drawer v-model:show="isAddItemFormShow" :width="520" placement="left">
+      <n-drawer v-model:show="isAddItemFormForCalendarShow" :width="520" placement="left">
         <n-drawer-content closable>
           <template #header>
             添加新日程到&ensp;{{selectedDate}}
           </template>
-          <n-form :model="addItemForm" label-placement="top" :rules="addItemFormRules" ref="addFormRef">
+          <n-form :model="addItemFormForCalendar" label-placement="top" :rules="addItemFormForCalendarRules" ref="addItemFormForCalendarRef">
             <n-form-item label="标题" path="title">
-              <n-input v-model:value="addItemForm.title" maxlength="10" show-count placeholder="输入日程标题" />
+              <n-input v-model:value="addItemFormForCalendar.title" maxlength="10" show-count placeholder="输入日程标题" />
             </n-form-item>
             <n-form-item label="内容" path="content">
-              <n-input v-model:value="addItemForm.content" maxlength="50" show-count placeholder="输入日程内容" type="textarea" />
+              <n-input v-model:value="addItemFormForCalendar.content" maxlength="50" show-count placeholder="输入日程内容" type="textarea" />
             </n-form-item>
             <n-form-item label="时间" path="time">
-              <n-time-picker v-model:formatted-value="addItemForm.time" placeholder="选择时间" format="HH:mm" value-format="HH:mm" />
+              <n-time-picker v-model:formatted-value="addItemFormForCalendar.time" placeholder="选择时间" format="HH:mm" value-format="HH:mm" />
             </n-form-item>
             <n-form-item label="标记" path="style">
-              <n-color-picker v-model:value="addItemForm.style" :show-alpha="false" />
+              <n-color-picker v-model:value="addItemFormForCalendar.style" :show-alpha="false" />
             </n-form-item>
             <n-form-item>
               <n-button type="primary" @click="addItemCalendar">确认添加</n-button>
@@ -85,25 +85,33 @@
       <!-- todoList视图 -->
       <div id="todolist" v-if="!isCalendarView && isTodoListDataPrepared">
         <div id="leftAddForm">
-          <!-- <n-form :model="addItemForm" label-placement="top" :rules="addItemFormRules" ref="addFormRef">
+          <n-gradient-text :size="36" type="success">
+            新增任务
+          </n-gradient-text>
+          <div style="height: 20px"></div>
+          <n-form :model="addItemFormForTodoList" label-placement="top" :rules="addItemFormForTodoListRules" ref="addItemFormForTodoListRef">
             <n-form-item label="标题" path="title">
-              <n-input v-model:value="addItemForm.title" maxlength="10" show-count placeholder="输入日程标题" />
+              <n-input v-model:value="addItemFormForTodoList.title" maxlength="10" show-count placeholder="输入日程标题" />
             </n-form-item>
             <n-form-item label="内容" path="content">
-              <n-input v-model:value="addItemForm.content" maxlength="50" show-count placeholder="输入日程内容" type="textarea" />
+              <n-input v-model:value="addItemFormForTodoList.content" maxlength="50" show-count placeholder="输入日程内容" type="textarea" />
             </n-form-item>
-            <n-form-item label="时间" path="time">
-              <n-time-picker v-model:formatted-value="addItemForm.time" placeholder="选择时间" format="HH:mm" value-format="HH:mm" />
+            <n-form-item label="时间" path="datetime">
+              <n-date-picker v-model:formatted-value="addItemFormForTodoList.datetime" type="datetime" placeholder="选择时间" format="yyyy-MM-dd HH:mm" value-format="yyyy-MM-dd HH:mm" />
             </n-form-item>
             <n-form-item label="标记" path="style">
-              <n-color-picker v-model:value="addItemForm.style" :show-alpha="false" />
+              <n-color-picker v-model:value="addItemFormForTodoList.style" :show-alpha="false" />
             </n-form-item>
             <n-form-item>
-              <n-button type="primary" @click="addItemCalendar">确认添加</n-button>
+              <n-button type="primary" @click="addItemTodoList">确认添加</n-button>
             </n-form-item>
-          </n-form> -->
+          </n-form>
         </div>
+        <div style="width: 2px; background: #cdcdcd"></div>
         <div id="rightTodoList">
+          <n-gradient-text :size="36" type="info">
+            任务列表
+          </n-gradient-text>
           <n-button color="#8a2be2" @click="isCalendarView = true">
             <template #icon>
               <n-icon>
@@ -112,7 +120,6 @@
             </template>
             日历视图
           </n-button>
-          <h2>任务列表</h2>
           <!-- <TodoItem title="哈哈哈" content="我哈哈大笑" :isFinished="false" date="2022-4-16" time="23:05" :style="'#00ff00'" /> -->
           <div v-for="(item, index) in getTodoListForTodoList()" :key="index">
             <TodoItem :id="item.id" :title="item.title" :content="item.content" :isFinished="item.is_finished" :date="item.date" :time="item.time" :style="item.style" :changeFinish="changeTodoItemFinish" :deleteItem="deleteTodoItem" />
@@ -152,9 +159,28 @@ function todoListHandler () {
 
   let data = []
 
-  // let currentInstance
-
   const isTodoListDataPrepared = ref(false)
+  const addItemFormForTodoListRef = ref(null)
+  // 用于添加todolist日程的表单
+  const addItemFormForTodoList = reactive({
+    title: '',
+    content: '',
+    datetime: '2022-04-19 22:00',
+    style: '#deb887',
+    is_finished: 0
+  })
+  // 添加todolist日程表单的校验规则
+  const addItemFormForTodoListRules = {
+    title: [
+      { required: true, message: '请输入任务标题', trigger: 'blur' }
+    ],
+    datetime: [
+      { required: true, message: '请选择任务时间', trigger: 'blur' }
+    ],
+    style: [
+      { required: true, message: '请选择任务标记', trigger: 'blur' }
+    ]
+  }
 
   // 重新挂载数据
   function refreshTodoListData () {
@@ -199,7 +225,6 @@ function todoListHandler () {
     }).catch(e => {
       console.log(e)
     })
-    // currentInstance = getCurrentInstance()
   })
 
   // 获取todolist数据
@@ -238,13 +263,21 @@ function todoListHandler () {
     })
   }
 
+  const addItemTodoList = () => {
+    console.log(addItemFormForTodoList)
+  }
+
   return {
     isTodoListDataPrepared,
     getTodoListForTodoList,
     changeTodoItemFinish,
     deleteTodoItem,
     refreshTodoListData,
-    reloadTodoList
+    reloadTodoList,
+    addItemFormForTodoListRef,
+    addItemFormForTodoList,
+    addItemFormForTodoListRules,
+    addItemTodoList
   }
 }
 
@@ -257,9 +290,9 @@ function canlendarHandler () {
   const calendarTime = ref(time)
   const selectedDate = ref('')
   const isCalendarDataPrepared = ref(false)
-  const addFormRef = ref(null)
+  const addItemFormForCalendarRef = ref(null)
   // 用于添加日程的表单
-  const addItemForm = reactive({
+  const addItemFormForCalendar = reactive({
     title: '',
     content: '',
     time: '00:00',
@@ -268,19 +301,15 @@ function canlendarHandler () {
     is_finished: 0
   })
   // 添加日程表单的校验规则
-  const addItemFormRules = {
+  const addItemFormForCalendarRules = {
     title: [
       { required: true, message: '请输入日程标题', trigger: 'blur' }
     ],
-    /* time: [
-      { required: true, message: '请选择日程时间', trigger: 'blur' },
-      { pattern: /^((1|0)[0-9]|2[0-3]):([0-5][0-9])$/, message: '请输入正确的时间格式，范围 00:00-23:59', trigger: 'blur' }
-    ], */
     style: [
       { required: true, message: '请选择日程标记', trigger: 'blur' }
     ]
   }
-  const isAddItemFormShow = ref(false)
+  const isAddItemFormForCalendarShow = ref(false)
 
   // 从数据库获取 todolist 数据
   function getTodoListFromDB () {
@@ -381,19 +410,19 @@ function canlendarHandler () {
     }
     calendarTime.value = timestamp
     selectedDate.value = `${year}-${month}-${date}`
-    addItemForm.date = `${year}-${month}-${date}`
-    isAddItemFormShow.value = true
+    addItemFormForCalendar.date = `${year}-${month}-${date}`
+    isAddItemFormForCalendarShow.value = true
   }
 
   // 添加日程
   const addItemCalendar = () => {
-    addFormRef.value?.validate((errors) => {
+    addItemFormForCalendarRef.value?.validate((errors) => {
       console.log(errors)
       if (!errors) {
         /* console.log('Valid')
-        console.log(addItemForm) */
+        console.log(addItemFormForCalendar) */
         // 校验成功，添加到数据库
-        let insertStr = 'insert into todolist (title, content, time, date, style, is_finished) values ("' + addItemForm.title + '", "' + addItemForm.content + '", "' + addItemForm.time + '", "' + addItemForm.date + '", "' + addItemForm.style + '", ' + addItemForm.is_finished + ')'
+        let insertStr = 'insert into todolist (title, content, time, date, style, is_finished) values ("' + addItemFormForCalendar.title + '", "' + addItemFormForCalendar.content + '", "' + addItemFormForCalendar.time + '", "' + addItemFormForCalendar.date + '", "' + addItemFormForCalendar.style + '", ' + addItemFormForCalendar.is_finished + ')'
         DB.run(insertStr, (err) => {
           if (err) {
             console.log(err)
@@ -403,14 +432,14 @@ function canlendarHandler () {
             data = res
             // 用于刷新
             refreshCalendarData()
-            isAddItemFormShow.value = false
+            isAddItemFormForCalendarShow.value = false
             // 重置表单
-            addItemForm.title = ''
-            addItemForm.content = ''
-            addItemForm.time = '00:00'
-            addItemForm.date = ''
-            addItemForm.style = '#deb887'
-            addItemForm.is_finished = 0
+            addItemFormForCalendar.title = ''
+            addItemFormForCalendar.content = ''
+            addItemFormForCalendar.time = '00:00'
+            addItemFormForCalendar.date = ''
+            addItemFormForCalendar.style = '#deb887'
+            addItemFormForCalendar.is_finished = 0
           }).catch(e => {
             console.log(e)
           })
@@ -444,13 +473,13 @@ function canlendarHandler () {
     getTodoListForCalendar,
     isCalendarDataPrepared,
     changeFinish,
-    addItemForm,
-    isAddItemFormShow,
+    addItemFormForCalendar,
+    isAddItemFormForCalendarShow,
     selectedDate,
     clickCalendarItem,
     addItemCalendar,
-    addItemFormRules,
-    addFormRef,
+    addItemFormForCalendarRules,
+    addItemFormForCalendarRef,
     deleteItemCalendar,
     refreshCalendarData,
     reloadCalendar
@@ -474,11 +503,11 @@ export default {
 
     const isCalendarView = ref(true)
 
-    const { calendarTime, getTodoListForCalendar, isCalendarDataPrepared, changeFinish, addItemForm, isAddItemFormShow, selectedDate, clickCalendarItem, addItemCalendar, addItemFormRules, addFormRef, deleteItemCalendar, reloadCalendar } = canlendarHandler()
+    const { calendarTime, getTodoListForCalendar, isCalendarDataPrepared, changeFinish, addItemFormForCalendar, isAddItemFormForCalendarShow, selectedDate, clickCalendarItem, addItemCalendar, addItemFormForCalendarRules, addItemFormForCalendarRef, deleteItemCalendar, reloadCalendar } = canlendarHandler()
 
     const { zhCN, dateZhCN } = configHandler()
 
-    const { isTodoListDataPrepared, getTodoListForTodoList, changeTodoItemFinish, deleteTodoItem, reloadTodoList  } = todoListHandler()
+    const { isTodoListDataPrepared, getTodoListForTodoList, changeTodoItemFinish, deleteTodoItem, reloadTodoList, addItemFormForTodoListRef, addItemFormForTodoList, addItemFormForTodoListRules, addItemTodoList } = todoListHandler()
 
     DB = new sqlite3.Database(databaseUrl, (err) => {
       if (err) {
@@ -519,17 +548,21 @@ export default {
       isCalendarDataPrepared,
       addItemCalendar,
       deleteItemCalendar,
-      addItemForm,
-      isAddItemFormShow,
+      addItemFormForCalendar,
+      isAddItemFormForCalendarShow,
       selectedDate,
       clickCalendarItem,
-      addItemFormRules,
-      addFormRef,
+      addItemFormForCalendarRules,
+      addItemFormForCalendarRef,
       // todoListHandler
       isTodoListDataPrepared,
       getTodoListForTodoList,
       changeTodoItemFinish,
       deleteTodoItem,
+      addItemFormForTodoList,
+      addItemFormForTodoListRef,
+      addItemFormForTodoListRules,
+      addItemTodoList,
       // globalConfig
       zhCN,
       dateZhCN
@@ -572,6 +605,9 @@ export default {
   #todolist {
     display: flex;
     justify-content: space-around;
+    width: 90%;
+    margin: auto;
+    padding: 10px 0;
   }
   #todolist > div {
     width: 45%;
