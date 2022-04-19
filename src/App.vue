@@ -4,6 +4,9 @@
     <n-config-provider :local="zhCN" :date-locale="dateZhCN">
       <!-- 日历视图 -->
       <div id="calender" v-if="isCalendarDataPrepared && isCalendarView">
+        <n-gradient-text :size="36" type="warning">
+            日历视图&ensp;
+          </n-gradient-text>
         <n-button color="#8a2be2" @click="isCalendarView = false">
           <template #icon>
             <n-icon>
@@ -12,6 +15,7 @@
           </template>
           任务视图
         </n-button>
+        <div style="height: 20px"></div>
         <n-calendar
           #="{ year, month, date }"
           :default-value="calendarTime"
@@ -90,14 +94,14 @@
           </n-gradient-text>
           <div style="height: 20px"></div>
           <n-form :model="addItemFormForTodoList" label-placement="top" :rules="addItemFormForTodoListRules" ref="addItemFormForTodoListRef">
+            <n-form-item label="时间" path="datetime">
+              <n-date-picker v-model:formatted-value="addItemFormForTodoList.datetime" type="datetime" placeholder="选择时间" format="yyyy-MM-dd HH:mm" value-format="yyyy-MM-dd HH:mm" />
+            </n-form-item>
             <n-form-item label="标题" path="title">
               <n-input v-model:value="addItemFormForTodoList.title" maxlength="10" show-count placeholder="输入日程标题" />
             </n-form-item>
             <n-form-item label="内容" path="content">
               <n-input v-model:value="addItemFormForTodoList.content" maxlength="50" show-count placeholder="输入日程内容" type="textarea" />
-            </n-form-item>
-            <n-form-item label="时间" path="datetime">
-              <n-date-picker v-model:formatted-value="addItemFormForTodoList.datetime" type="datetime" placeholder="选择时间" format="yyyy-MM-dd HH:mm" value-format="yyyy-MM-dd HH:mm" />
             </n-form-item>
             <n-form-item label="标记" path="style">
               <n-color-picker v-model:value="addItemFormForTodoList.style" :show-alpha="false" />
@@ -110,7 +114,7 @@
         <div style="width: 2px; background: #cdcdcd"></div>
         <div id="rightTodoList">
           <n-gradient-text :size="36" type="info">
-            任务列表
+            任务列表&ensp;
           </n-gradient-text>
           <n-button color="#8a2be2" @click="isCalendarView = true">
             <template #icon>
@@ -132,10 +136,11 @@
 
 <script>
 import { onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import formatDate from './util/dateFormatter'
 import MainLoading from './components/MainLoading.vue'
 import TodoItem from './components/TodoItem.vue'
 import { zhCN, dateZhCN } from 'naive-ui'
-import {Delete24Regular as DeleteIcon, TaskListRtl24Regular as TaskListIcon, CalendarLtr16Filled as CalendarIcon} from '@vicons/fluent'
+import { Delete24Regular as DeleteIcon, TaskListRtl24Regular as TaskListIcon, CalendarLtr16Filled as CalendarIcon } from '@vicons/fluent'
 import sqlite3 from 'sqlite3'
 
 // 这个databaseUrl是打包的时候用的
@@ -165,7 +170,7 @@ function todoListHandler () {
   const addItemFormForTodoList = reactive({
     title: '',
     content: '',
-    datetime: '2022-04-19 22:00',
+    datetime: formatDate(new Date(), 'yyyy-MM-dd HH:mm'),
     style: '#deb887',
     is_finished: 0
   })
@@ -263,8 +268,33 @@ function todoListHandler () {
     })
   }
 
+  // 添加todolist日程
   const addItemTodoList = () => {
-    console.log(addItemFormForTodoList)
+    addItemFormForTodoListRef.value?.validate((errors) => {
+      console.log(errors)
+      if (!errors) {
+        let datetime = addItemFormForTodoList.datetime.split(' ')
+        let date = datetime[0]
+        let time = datetime[1]
+        let insertStr = 'insert into todolist (title, content, date, time, style, is_finished) values ("' + addItemFormForTodoList.title + '", "' + addItemFormForTodoList.content + '", "' + date + '", "' + time + '", "' + addItemFormForTodoList.style + '", ' + addItemFormForTodoList.is_finished + ')'
+        DB.run(insertStr, (err) => {
+          if (err) {
+            console.log(err)
+          } else {
+            getTodoListFromDB().then(res => {
+              data = res
+              refreshTodoListData()
+              // 重置表单
+              addItemFormForTodoList.title = ''
+              addItemFormForTodoList.content = ''
+              addItemFormForTodoList.datetime = formatDate(new Date(), 'yyyy-MM-dd HH:mm')
+              addItemFormForTodoList.style = '#deb887'
+              addItemFormForTodoList.is_finished = 0
+            })
+          }
+        })
+      }
+    })
   }
 
   return {
@@ -605,6 +635,7 @@ export default {
   #todolist {
     display: flex;
     justify-content: space-around;
+    flex-direction: row-reverse;
     width: 90%;
     margin: auto;
     padding: 10px 0;
