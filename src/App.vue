@@ -5,8 +5,17 @@
       <!-- 日历视图 -->
       <div id="calender" v-if="isCalendarDataPrepared && isCalendarView">
         <n-gradient-text :size="36" type="warning">
-            日历视图&ensp;
-          </n-gradient-text>
+          日历视图&ensp;&ensp;
+        </n-gradient-text>
+        <n-button type="error" @click="reloadCalendar">
+          <template #icon>
+            <n-icon>
+              <refresh-icon />
+            </n-icon>
+          </template>
+          刷新
+        </n-button>
+        &ensp;&ensp;
         <n-button color="#8a2be2" @click="isCalendarView = false">
           <template #icon>
             <n-icon>
@@ -114,8 +123,18 @@
         <div style="width: 2px; background: #cdcdcd"></div>
         <div id="rightTodoList">
           <n-gradient-text :size="36" type="info">
-            任务列表&ensp;
+            任务列表&ensp;&ensp;
           </n-gradient-text>
+          <n-button type="error" @click="reloadTodoList">
+            <template #icon>
+              <n-icon>
+                <refresh-icon />
+              </n-icon>
+            </template>
+            刷新
+          </n-button>
+          &ensp;
+          &ensp;
           <n-button color="#8a2be2" @click="isCalendarView = true">
             <template #icon>
               <n-icon>
@@ -140,7 +159,7 @@ import formatDate from './util/dateFormatter'
 import MainLoading from './components/MainLoading.vue'
 import TodoItem from './components/TodoItem.vue'
 import { zhCN, dateZhCN } from 'naive-ui'
-import { Delete24Regular as DeleteIcon, TaskListRtl24Regular as TaskListIcon, CalendarLtr16Filled as CalendarIcon } from '@vicons/fluent'
+import { Delete24Regular as DeleteIcon, TaskListRtl24Regular as TaskListIcon, CalendarLtr16Filled as CalendarIcon , ArrowClockwise12Regular as RefreshIcon} from '@vicons/fluent'
 import sqlite3 from 'sqlite3'
 
 // 这个databaseUrl是打包的时候用的
@@ -523,7 +542,8 @@ export default {
     TodoItem,
     DeleteIcon,
     TaskListIcon,
-    CalendarIcon
+    CalendarIcon,
+    RefreshIcon
   },
   setup () {
 
@@ -584,6 +604,7 @@ export default {
       clickCalendarItem,
       addItemFormForCalendarRules,
       addItemFormForCalendarRef,
+      reloadCalendar,
       // todoListHandler
       isTodoListDataPrepared,
       getTodoListForTodoList,
@@ -593,6 +614,7 @@ export default {
       addItemFormForTodoListRef,
       addItemFormForTodoListRules,
       addItemTodoList,
+      reloadTodoList,
       // globalConfig
       zhCN,
       dateZhCN
