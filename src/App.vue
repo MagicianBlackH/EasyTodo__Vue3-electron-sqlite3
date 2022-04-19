@@ -3,7 +3,7 @@
     <MainLoading v-if="loading" />
     <n-config-provider :local="zhCN" :date-locale="dateZhCN">
       <!-- 日历视图 -->
-      <div id="calender" v-if="isCalendarDataPrepared" v-show="isCalendarView">
+      <div id="calender" v-if="isCalendarDataPrepared && isCalendarView">
         <n-button color="#8a2be2" @click="isCalendarView = false">
           <template #icon>
             <n-icon>
@@ -20,7 +20,7 @@
         >
           {{ year }}-{{ month }}-{{ date }}
           <br>
-          <n-popover trigger="hover" width="300px" v-for="(item, index) in getTodoList(year, month, date)" :key="index">
+          <n-popover trigger="hover" width="300px" v-for="(item, index) in getTodoListForCalendar(year, month, date)" :key="index">
             <template #trigger>
               <span class="arrangement" v-if="item.is_finished === 0" :style="'background-color: ' + item.style">
                 {{item.title}}&ensp;&ensp;{{item.time}}
@@ -70,9 +70,6 @@
             <n-form-item label="时间" path="time">
               <n-time-picker v-model:formatted-value="addItemForm.time" placeholder="选择时间" format="HH:mm" value-format="HH:mm" />
             </n-form-item>
-            <!-- <n-form-item label="时间" path="time">
-              <n-input v-model:value="addItemForm.time" placeholder="输入时间" />
-            </n-form-item> -->
             <n-form-item label="标记" path="style">
               <n-color-picker v-model:value="addItemForm.style" :show-alpha="false" />
             </n-form-item>
@@ -86,11 +83,40 @@
       <!-- ====================================================================================== -->
       <!-- ====================================================================================== -->
       <!-- todoList视图 -->
-      <div id="todolist" v-show="!isCalendarView">
-        <div id="leftAddForm"></div>
+      <div id="todolist" v-if="!isCalendarView && isTodoListDataPrepared">
+        <div id="leftAddForm">
+          <!-- <n-form :model="addItemForm" label-placement="top" :rules="addItemFormRules" ref="addFormRef">
+            <n-form-item label="标题" path="title">
+              <n-input v-model:value="addItemForm.title" maxlength="10" show-count placeholder="输入日程标题" />
+            </n-form-item>
+            <n-form-item label="内容" path="content">
+              <n-input v-model:value="addItemForm.content" maxlength="50" show-count placeholder="输入日程内容" type="textarea" />
+            </n-form-item>
+            <n-form-item label="时间" path="time">
+              <n-time-picker v-model:formatted-value="addItemForm.time" placeholder="选择时间" format="HH:mm" value-format="HH:mm" />
+            </n-form-item>
+            <n-form-item label="标记" path="style">
+              <n-color-picker v-model:value="addItemForm.style" :show-alpha="false" />
+            </n-form-item>
+            <n-form-item>
+              <n-button type="primary" @click="addItemCalendar">确认添加</n-button>
+            </n-form-item>
+          </n-form> -->
+        </div>
         <div id="rightTodoList">
+          <n-button color="#8a2be2" @click="isCalendarView = true">
+            <template #icon>
+              <n-icon>
+                <calendar-icon />
+              </n-icon>
+            </template>
+            日历视图
+          </n-button>
           <h2>任务列表</h2>
-          <TodoItem title="哈哈哈" content="我哈哈大笑" :isFinished="false" date="2022-4-16" time="23:05" :style="'#00ff00'" />
+          <!-- <TodoItem title="哈哈哈" content="我哈哈大笑" :isFinished="false" date="2022-4-16" time="23:05" :style="'#00ff00'" /> -->
+          <div v-for="(item, index) in getTodoListForTodoList()" :key="index">
+            <TodoItem :id="item.id" :title="item.title" :content="item.content" :isFinished="item.is_finished" :date="item.date" :time="item.time" :style="item.style" :changeFinish="changeTodoItemFinish" />
+          </div>
         </div>
       </div>
     </n-config-provider>
@@ -102,7 +128,7 @@ import { onMounted, onUnmounted, reactive, ref } from 'vue'
 import MainLoading from './components/MainLoading.vue'
 import TodoItem from './components/TodoItem.vue'
 import { zhCN, dateZhCN } from 'naive-ui'
-import {Delete24Regular as DeleteIcon, TaskListRtl24Regular as TaskListIcon} from '@vicons/fluent'
+import {Delete24Regular as DeleteIcon, TaskListRtl24Regular as TaskListIcon, CalendarLtr16Filled as CalendarIcon} from '@vicons/fluent'
 import sqlite3 from 'sqlite3'
 
 // 这个databaseUrl是打包的时候用的
@@ -118,6 +144,77 @@ function configHandler () {
   return {
     zhCN,
     dateZhCN
+  }
+}
+
+// ======================================================= 管理todoList的函数
+function todoListHandler () {
+
+  let data = []
+
+  // let currentInstance
+
+  const isTodoListDataPrepared = ref(false)
+
+  // 重新挂载数据
+  function refreshTodoListData () {
+    console.log('refreshTodoListData')
+    isTodoListDataPrepared.value = false
+    setTimeout(() => {
+      isTodoListDataPrepared.value = true
+    }, 30)
+  }
+
+  // 从数据库获取数据
+  const getTodoListFromDB = () => {
+    return new Promise((resolve, reject) => {
+      DB.all('select * from todolist order by is_finished,date,time', (err, rows) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve(rows)
+        }
+      })
+    })
+  }
+
+  onMounted(() => {
+    getTodoListFromDB().then(res => {
+      data = res
+      setTimeout(() => {
+        isTodoListDataPrepared.value = true
+      }, 3000)
+    }).catch(e => {
+      console.log(e)
+    })
+    // currentInstance = getCurrentInstance()
+  })
+
+  // 获取todolist数据
+  const getTodoListForTodoList = () => {
+    console.log(data)
+    return data
+  }
+
+  // 改变某个item的状态
+  const changeTodoItemFinish = (id, flag) => {
+    let str = 'update todolist set is_finished = ' + flag + ' where id = ' + id
+    DB.run(str, (err) => {
+      if (err) {
+        console.log(err)
+      } else {
+        getTodoListFromDB().then(res => {
+          data = res
+          refreshTodoListData()
+        })
+      }
+    })
+  }
+
+  return {
+    isTodoListDataPrepared,
+    getTodoListForTodoList,
+    changeTodoItemFinish
   }
 }
 
@@ -186,7 +283,7 @@ function canlendarHandler () {
   })
 
   // 获取日历每个单元格的日程
-  const getTodoList = (year, month, date) => {
+  const getTodoListForCalendar = (year, month, date) => {
     // 补零操作，为了让数据库的数据能匹配到界面上的数据
     /* console.log(typeof month) */
     if (month < 10) {
@@ -301,7 +398,7 @@ function canlendarHandler () {
 
   return {
     calendarTime,
-    getTodoList,
+    getTodoListForCalendar,
     isCalendarDataPrepared,
     changeFinish,
     addItemForm,
@@ -321,7 +418,8 @@ export default {
     MainLoading,
     TodoItem,
     DeleteIcon,
-    TaskListIcon
+    TaskListIcon,
+    CalendarIcon
   },
   setup () {
 
@@ -331,8 +429,11 @@ export default {
 
     const isCalendarView = ref(true)
 
-    const { calendarTime, getTodoList, isCalendarDataPrepared, changeFinish, addItemForm, isAddItemFormShow, selectedDate, clickCalendarItem, addItemCalendar, addItemFormRules, addFormRef, deleteItemCalendar } = canlendarHandler()
+    const { calendarTime, getTodoListForCalendar, isCalendarDataPrepared, changeFinish, addItemForm, isAddItemFormShow, selectedDate, clickCalendarItem, addItemCalendar, addItemFormRules, addFormRef, deleteItemCalendar } = canlendarHandler()
+
     const { zhCN, dateZhCN } = configHandler()
+
+    const { isTodoListDataPrepared, getTodoListForTodoList, changeTodoItemFinish } = todoListHandler()
 
     DB = new sqlite3.Database(databaseUrl, (err) => {
       if (err) {
@@ -351,22 +452,29 @@ export default {
     })
 
     return {
+      // setup
       loading,
       isCalendarView,
+      // calendarHandler
       calendarTime,
-      getTodoList,
+      getTodoListForCalendar,
       changeFinish,
       isCalendarDataPrepared,
-      zhCN,
-      dateZhCN,
+      addItemCalendar,
+      deleteItemCalendar,
       addItemForm,
       isAddItemFormShow,
       selectedDate,
       clickCalendarItem,
-      addItemCalendar,
       addItemFormRules,
       addFormRef,
-      deleteItemCalendar
+      // todoListHandler
+      isTodoListDataPrepared,
+      getTodoListForTodoList,
+      changeTodoItemFinish,
+      // globalConfig
+      zhCN,
+      dateZhCN
     }
   }
 }

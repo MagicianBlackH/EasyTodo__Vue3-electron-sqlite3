@@ -1,10 +1,17 @@
 <template>
     <div>
-        <n-card :embedded="props.isFinished" hoverable :title="props.title" :class="!props.isFinished ? 'deepBackground' : ''">
+        <n-card hoverable :title="props.title" :class="!isFinishedCheck ? 'deepBackground' : 'todoBackground'">
             <template #header-extra>
                 <n-checkbox size="large" v-model:checked="isFinishedCheck" />
             </template>
-            <span :style="'background:' + props.style">&ensp;</span>&ensp;{{props.content}}
+
+            <div v-if="!isFinishedCheck">
+                <span :style="'background:' + props.style">&ensp;</span>&ensp;{{props.content}}
+            </div>
+            <div v-else>
+                <span :style="'background: grey'">&ensp;</span>&ensp;<del>{{props.content}}</del>
+            </div>
+            
             <template #footer>
                 {{props.date}}&ensp;{{props.time}}
             </template>
@@ -13,9 +20,13 @@
 </template>
 
 <script>
-import { watch, ref } from 'vue'
+import { watch, ref, onUnmounted } from 'vue'
 export default {
     props: {
+        id: {
+            type: Number,
+            required: true
+        },
         date: {
             type: String,
             require: true
@@ -33,25 +44,32 @@ export default {
             require: true
         },
         isFinished: {
-            type: Boolean,
+            type: Number,
             require: true
         },
         style: {
             type: String,
             require: true
         },
-        /* changeFinish: {
+        changeFinish: {
             type: Function,
             require: true
-        } */
+        }
     },
     setup(props) {
-        const isFinishedCheck = ref(props.isFinished)
+        const isFinished = ref(props.isFinished)
+        const isFinishedCheck = ref(true)
+
+        isFinished.value === 1 ? isFinishedCheck.value = true : isFinishedCheck.value = false
 
         watch(isFinishedCheck, (newVal) => {
             console.log(newVal)
-            // TODO: 改变完成状态
+            props.changeFinish(props.id, newVal ? 1 : 0)
         })
+        onUnmounted (() => {
+            console.log('unmounted')
+        })
+
         return {
             props,
             isFinishedCheck
@@ -61,7 +79,10 @@ export default {
 </script>
 
 <style scoped>
-    .deepBackground {
-        background-color: #fafafa !important;
+    .finishedBackground {
+        background-color: #fcfcfc !important;
+    }
+    .todoBackground {
+        background-color: #aaaaaa !important;
     }
 </style>
