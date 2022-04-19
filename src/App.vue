@@ -115,7 +115,7 @@
           <h2>任务列表</h2>
           <!-- <TodoItem title="哈哈哈" content="我哈哈大笑" :isFinished="false" date="2022-4-16" time="23:05" :style="'#00ff00'" /> -->
           <div v-for="(item, index) in getTodoListForTodoList()" :key="index">
-            <TodoItem :id="item.id" :title="item.title" :content="item.content" :isFinished="item.is_finished" :date="item.date" :time="item.time" :style="item.style" :changeFinish="changeTodoItemFinish" />
+            <TodoItem :id="item.id" :title="item.title" :content="item.content" :isFinished="item.is_finished" :date="item.date" :time="item.time" :style="item.style" :changeFinish="changeTodoItemFinish" :deleteItem="deleteTodoItem" />
           </div>
         </div>
       </div>
@@ -124,7 +124,7 @@
 </template>
 
 <script>
-import { onMounted, onUnmounted, reactive, ref } from 'vue'
+import { onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import MainLoading from './components/MainLoading.vue'
 import TodoItem from './components/TodoItem.vue'
 import { zhCN, dateZhCN } from 'naive-ui'
@@ -158,12 +158,13 @@ function todoListHandler () {
 
   // 重新挂载数据
   function refreshTodoListData () {
-    console.log('refreshTodoListData')
+    /* console.log('refreshTodoListData') */
     isTodoListDataPrepared.value = false
     setTimeout(() => {
       isTodoListDataPrepared.value = true
-    }, 30)
+    }, 5)
   }
+
 
   // 从数据库获取数据
   const getTodoListFromDB = () => {
@@ -178,12 +179,23 @@ function todoListHandler () {
     })
   }
 
+  // 重新加载todolist
+  function reloadTodoList () {
+    isTodoListDataPrepared.value = false
+    getTodoListFromDB().then(res => {
+      data = res
+      isTodoListDataPrepared.value = true
+    }).catch(e => {
+      console.log(e)
+    })
+  }
+
   onMounted(() => {
     getTodoListFromDB().then(res => {
       data = res
       setTimeout(() => {
         isTodoListDataPrepared.value = true
-      }, 3000)
+      }, 1000)
     }).catch(e => {
       console.log(e)
     })
@@ -192,7 +204,7 @@ function todoListHandler () {
 
   // 获取todolist数据
   const getTodoListForTodoList = () => {
-    console.log(data)
+    /* console.log(data) */
     return data
   }
 
@@ -211,10 +223,28 @@ function todoListHandler () {
     })
   }
 
+  // 删除某个item
+  const deleteTodoItem = (id) => {
+    let str = 'delete from todolist where id = ' + id
+    DB.run(str, (err) => {
+      if (err) {
+        console.log(err)
+      } else {
+        getTodoListFromDB().then(res => {
+          data = res
+          refreshTodoListData()
+        })
+      }
+    })
+  }
+
   return {
     isTodoListDataPrepared,
     getTodoListForTodoList,
-    changeTodoItemFinish
+    changeTodoItemFinish,
+    deleteTodoItem,
+    refreshTodoListData,
+    reloadTodoList
   }
 }
 
@@ -268,7 +298,20 @@ function canlendarHandler () {
   // 重新挂载数据
   function refreshCalendarData () {
     isCalendarDataPrepared.value = false
-    isCalendarDataPrepared.value = true
+    setTimeout(() => {
+      isCalendarDataPrepared.value = true
+    }, 5)
+  }
+
+  // 重新加载日历数据
+  function reloadCalendar () {
+    isCalendarDataPrepared.value = false
+    getTodoListFromDB().then(res => {
+      data = res
+      isCalendarDataPrepared.value = true
+    }).catch(e => {
+      console.log(e)
+    })
   }
 
   onMounted(() => {
@@ -276,7 +319,7 @@ function canlendarHandler () {
       data = res
       setTimeout(() => {
         isCalendarDataPrepared.value = true
-      }, 3000)
+      }, 1000)
     }).catch(e => {
       console.log(e)
     })
@@ -408,7 +451,9 @@ function canlendarHandler () {
     addItemCalendar,
     addItemFormRules,
     addFormRef,
-    deleteItemCalendar
+    deleteItemCalendar,
+    refreshCalendarData,
+    reloadCalendar
   }
 }
 
@@ -429,11 +474,11 @@ export default {
 
     const isCalendarView = ref(true)
 
-    const { calendarTime, getTodoListForCalendar, isCalendarDataPrepared, changeFinish, addItemForm, isAddItemFormShow, selectedDate, clickCalendarItem, addItemCalendar, addItemFormRules, addFormRef, deleteItemCalendar } = canlendarHandler()
+    const { calendarTime, getTodoListForCalendar, isCalendarDataPrepared, changeFinish, addItemForm, isAddItemFormShow, selectedDate, clickCalendarItem, addItemCalendar, addItemFormRules, addFormRef, deleteItemCalendar, reloadCalendar } = canlendarHandler()
 
     const { zhCN, dateZhCN } = configHandler()
 
-    const { isTodoListDataPrepared, getTodoListForTodoList, changeTodoItemFinish } = todoListHandler()
+    const { isTodoListDataPrepared, getTodoListForTodoList, changeTodoItemFinish, deleteTodoItem, reloadTodoList  } = todoListHandler()
 
     DB = new sqlite3.Database(databaseUrl, (err) => {
       if (err) {
@@ -443,7 +488,19 @@ export default {
         // 成功之后关闭加载界面
         setTimeout(() => {
           loading.value = false
-        }, 3000)
+        }, 1000)
+      }
+    })
+
+    watch(isCalendarView, (newVal) => {
+      console.log(newVal)
+      // 为 true 证明回到日历视图
+      if (newVal) {
+        /* console.log('刷新日历') */
+        reloadCalendar()
+      } else {
+        /* console.log('刷新todolist') */
+        reloadTodoList ()
       }
     })
 
@@ -472,6 +529,7 @@ export default {
       isTodoListDataPrepared,
       getTodoListForTodoList,
       changeTodoItemFinish,
+      deleteTodoItem,
       // globalConfig
       zhCN,
       dateZhCN
