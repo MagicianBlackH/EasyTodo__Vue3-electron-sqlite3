@@ -144,7 +144,7 @@
             日历视图
           </n-button>
           <!-- <TodoItem title="哈哈哈" content="我哈哈大笑" :isFinished="false" date="2022-4-16" time="23:05" :style="'#00ff00'" /> -->
-          <div v-for="(item, index) in getTodoListForTodoList()" :key="index">
+          <div v-for="(item, index) in todoListData" :key="index">
             <TodoItem :id="item.id" :title="item.title" :content="item.content" :isFinished="item.is_finished" :date="item.date" :time="item.time" :style="item.style" :changeFinish="changeTodoItemFinish" :deleteItem="deleteTodoItem" />
           </div>
         </div>
@@ -182,6 +182,7 @@ function configHandler () {
 function todoListHandler () {
 
   let data = []
+  const todoListData = ref([])
 
   const isTodoListDataPrepared = ref(false)
   const addItemFormForTodoListRef = ref(null)
@@ -233,7 +234,13 @@ function todoListHandler () {
   function reloadTodoList () {
     isTodoListDataPrepared.value = false
     getTodoListFromDB().then(res => {
-      data = res
+      // 清空todoListData
+      todoListData.value.splice(0, todoListData.value.length)
+      // 把每个元素加入todoListData
+      res.forEach(item => {
+        todoListData.value.push(item)
+      })
+      /* data = res */
       isTodoListDataPrepared.value = true
     }).catch(e => {
       console.log(e)
@@ -242,7 +249,13 @@ function todoListHandler () {
 
   onMounted(() => {
     getTodoListFromDB().then(res => {
-      data = res
+      // 清空todoListData
+      todoListData.value.splice(0, todoListData.value.length)
+      // 把每个元素加入todoListData
+      res.forEach(item => {
+        todoListData.value.push(item)
+      })
+      /* data = res */
       setTimeout(() => {
         isTodoListDataPrepared.value = true
       }, 1000)
@@ -264,10 +277,15 @@ function todoListHandler () {
       if (err) {
         console.log(err)
       } else {
-        getTodoListFromDB().then(res => {
+        // 找到todoListItem对应的那个元素并改变状态
+        let index = todoListData.value.findIndex(item => item.id === id)
+        if (index !== -1) {
+          todoListData.value[index].is_finished = flag
+        }
+        /* getTodoListFromDB().then(res => {
           data = res
           refreshTodoListData()
-        })
+        }) */
       }
     })
   }
@@ -279,10 +297,15 @@ function todoListHandler () {
       if (err) {
         console.log(err)
       } else {
-        getTodoListFromDB().then(res => {
+        // 找到todoListItem对应的那个元素并删除
+        let index = todoListData.value.findIndex(item => item.id === id)
+        if (index !== -1) {
+          todoListData.value.splice(index, 1)
+        }
+        /* getTodoListFromDB().then(res => {
           data = res
           refreshTodoListData()
-        })
+        }) */
       }
     })
   }
@@ -301,6 +324,12 @@ function todoListHandler () {
             console.log(err)
           } else {
             getTodoListFromDB().then(res => {
+              // 清空todoListData
+              todoListData.value.splice(0, todoListData.value.length)
+              // 把每个元素加入todoListData
+              res.forEach(item => {
+                todoListData.value.push(item)
+              })
               data = res
               refreshTodoListData()
               // 重置表单
@@ -317,6 +346,7 @@ function todoListHandler () {
   }
 
   return {
+    todoListData,
     isTodoListDataPrepared,
     getTodoListForTodoList,
     changeTodoItemFinish,
@@ -557,7 +587,7 @@ export default {
 
     const { zhCN, dateZhCN } = configHandler()
 
-    const { isTodoListDataPrepared, getTodoListForTodoList, changeTodoItemFinish, deleteTodoItem, reloadTodoList, addItemFormForTodoListRef, addItemFormForTodoList, addItemFormForTodoListRules, addItemTodoList } = todoListHandler()
+    const { todoListData, isTodoListDataPrepared, getTodoListForTodoList, changeTodoItemFinish, deleteTodoItem, reloadTodoList, addItemFormForTodoListRef, addItemFormForTodoList, addItemFormForTodoListRules, addItemTodoList } = todoListHandler()
 
     DB = new sqlite3.Database(databaseUrl, (err) => {
       if (err) {
@@ -606,6 +636,7 @@ export default {
       addItemFormForCalendarRef,
       reloadCalendar,
       // todoListHandler
+      todoListData,
       isTodoListDataPrepared,
       getTodoListForTodoList,
       changeTodoItemFinish,
