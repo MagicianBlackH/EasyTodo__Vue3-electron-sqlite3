@@ -27,6 +27,9 @@ npm run electron:build
 
 ### 日历视图
 点击每一个日历单元格可以新增日程，悬浮在每条日程上可以进行日程状态更改和删除。
+![image](https://pic.dogimg.com/2022/04/20/62602062b5dd5.png)
+![image](https://pic.dogimg.com/2022/04/20/6260206334362.png)
 
 ### 任务视图
 任务视图右侧表单可以新增任务，左侧显示的任务可以进行任务状态更改和删除。
+![image](https://pic.dogimg.com/2022/04/20/6260206211472.png)
