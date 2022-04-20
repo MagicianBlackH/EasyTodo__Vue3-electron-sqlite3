@@ -163,7 +163,7 @@ import { Delete24Regular as DeleteIcon, TaskListRtl24Regular as TaskListIcon, Ca
 import sqlite3 from 'sqlite3'
 
 // 这个databaseUrl是打包的时候用的
-// const databaseUrl = '../bundled/easytodo_DB.db'
+// const databaseUrl = './resources/easytodo_DB.db'
 
 // 这个databaseUrl是在开发的时候用的
 const databaseUrl = './easytodo_DB.db'
