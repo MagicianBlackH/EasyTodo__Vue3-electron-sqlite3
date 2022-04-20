@@ -4,6 +4,9 @@
 
 ### 初始化项目安装依赖
 ```
+vue add electron-builder
+```
+```
 npm install
 ```
 
