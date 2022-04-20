@@ -313,7 +313,7 @@ function todoListHandler () {
   // 添加todolist日程
   const addItemTodoList = () => {
     addItemFormForTodoListRef.value?.validate((errors) => {
-      console.log(errors)
+      /* console.log(errors) */
       if (!errors) {
         let datetime = addItemFormForTodoList.datetime.split(' ')
         let date = datetime[0]
@@ -602,7 +602,7 @@ export default {
     })
 
     watch(isCalendarView, (newVal) => {
-      console.log(newVal)
+      /* console.log(newVal) */
       // 为 true 证明回到日历视图
       if (newVal) {
         /* console.log('刷新日历') */
