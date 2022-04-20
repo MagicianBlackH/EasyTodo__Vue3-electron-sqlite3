@@ -4,9 +4,9 @@
         <h1>EasyTodo</h1>
         <a-spin size="large" />
         <div id="footer">
-            <span>Powered&nbsp;by&nbsp;HPC&nbsp;&nbsp;&nbsp;&nbsp;Copyright&nbsp;©&nbsp;2022</span>
+            <span>Copyright&nbsp;©&nbsp;2022&nbsp;HPC,&nbsp;All&nbsp;Rights&nbsp;Reserved.</span>
             <br>
-            <span>UI-lib:&nbsp;Ant&nbsp;Desigin&nbsp;Vue,&nbsp;&nbsp;naive-ui</span>
+            <span>UI-lib:&nbsp;Ant&nbsp;Desigin&nbsp;Vue,&nbsp;&nbsp;Naive-ui</span>
         </div>
     </div>
 </template>
