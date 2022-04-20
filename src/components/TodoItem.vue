@@ -2,7 +2,7 @@
     <div style="margin: 5px 0">
         <n-card hoverable :title="props.title" :class="!isFinishedCheck ? 'deepBackground' : 'todoBackground'">
             <template #header-extra>
-                <n-checkbox size="large" v-model:checked="isFinishedCheck" />
+                <n-checkbox size="large" v-model:checked="isFinishedCheck" @click="onCheckboxClick" />
             </template>
 
             <div v-if="!isFinishedCheck">
@@ -29,7 +29,7 @@
 </template>
 
 <script>
-import { watch, ref, onUnmounted } from 'vue'
+import { watch, ref } from 'vue'
 import {Delete24Regular as DeleteIcon} from '@vicons/fluent'
 export default {
     components: {
@@ -74,22 +74,23 @@ export default {
         }
     },
     setup(props) {
-        const isFinished = ref(props.isFinished)
         const isFinishedCheck = ref(true)
-
-        isFinished.value === 1 ? isFinishedCheck.value = true : isFinishedCheck.value = false
-
-        watch(isFinishedCheck, (newVal) => {
-            /* console.log(newVal) */
-            props.changeFinish(props.id, newVal ? 1 : 0)
+        /* console.log(props) */
+        props.isFinished === 1 ? isFinishedCheck.value = true : isFinishedCheck.value = false
+        watch(() => props.isFinished, (newVal) => {
+            /* console.log('watch', newVal) */
+            newVal === 1 ? isFinishedCheck.value = true : isFinishedCheck.value = false
         })
-        onUnmounted (() => {
-            /* console.log('unmounted') */
-        })
+
+        const onCheckboxClick = () => {
+            /* console.log('点击了checkbox', isFinishedCheck.value) */
+            props.changeFinish(props.id, isFinishedCheck.value ? 1 : 0)
+        }
 
         return {
             props,
-            isFinishedCheck
+            isFinishedCheck,
+            onCheckboxClick
         }
     },
 }
