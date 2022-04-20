@@ -122,30 +122,34 @@
         </div>
         <div style="width: 2px; background: #cdcdcd"></div>
         <div id="rightTodoList">
-          <n-gradient-text :size="36" type="info">
-            任务列表&ensp;&ensp;
-          </n-gradient-text>
-          <n-button type="error" @click="reloadTodoList">
-            <template #icon>
-              <n-icon>
-                <refresh-icon />
-              </n-icon>
-            </template>
-            刷新
-          </n-button>
-          &ensp;
-          &ensp;
-          <n-button color="#8a2be2" @click="isCalendarView = true">
-            <template #icon>
-              <n-icon>
-                <calendar-icon />
-              </n-icon>
-            </template>
-            日历视图
-          </n-button>
+          <div id="rightTodoListTitle">
+            <n-gradient-text :size="36" type="info">
+              任务列表&ensp;&ensp;
+            </n-gradient-text>
+            <n-button type="error" @click="reloadTodoList">
+              <template #icon>
+                <n-icon>
+                  <refresh-icon />
+                </n-icon>
+              </template>
+              刷新
+            </n-button>
+            &ensp;
+            &ensp;
+            <n-button color="#8a2be2" @click="isCalendarView = true">
+              <template #icon>
+                <n-icon>
+                  <calendar-icon />
+                </n-icon>
+              </template>
+              日历视图
+            </n-button>
+          </div>
           <!-- <TodoItem title="哈哈哈" content="我哈哈大笑" :isFinished="false" date="2022-4-16" time="23:05" :style="'#00ff00'" /> -->
-          <div v-for="(item, index) in todoListData" :key="index">
-            <TodoItem :id="item.id" :title="item.title" :content="item.content" :isFinished="item.is_finished" :date="item.date" :time="item.time" :style="item.style" :changeFinish="changeTodoItemFinish" :deleteItem="deleteTodoItem" />
+          <div id="rightTodoListContent">
+            <div v-for="(item, index) in todoListData" :key="index">
+              <TodoItem :id="item.id" :title="item.title" :content="item.content" :isFinished="item.is_finished" :date="item.date" :time="item.time" :style="item.style" :changeFinish="changeTodoItemFinish" :deleteItem="deleteTodoItem" />
+            </div>
           </div>
         </div>
       </div>
@@ -686,15 +690,40 @@ export default {
     margin: 10px 0;
   }
   #todolist {
-    display: flex;
+    position: relative;
+    /* display: flex;
     justify-content: space-around;
-    flex-direction: row-reverse;
+    flex-direction: row-reverse; */
     width: 90%;
     margin: auto;
     padding: 10px 0;
   }
   #todolist > div {
     width: 45%;
+  }
+  #leftAddForm {
+    position: fixed;
+    right: 5%;
+    border-left: 2px solid #ccc;
+    padding-left: 30px;
+  }
+  /* #rightTodoList {
+    position: relative;
+  } */
+  #rightTodoListTitle {
+    position: fixed;
+    left: 5%;
+    top: 0;
+    right: 50%;
+    z-index: 5;
+    padding: 10px 0;
+    background: #ffffff;
+  }
+  #rightTodoListContent {
+    /* margin-top: 100px; */
+    position: relative;
+    top: 60px;
+    right: 0;
   }
   ::-webkit-scrollbar {
     /*滚动条整体样式*/
