@@ -3,7 +3,28 @@
     <MainLoading v-if="loading" />
     <n-config-provider :local="zhCN" :date-locale="dateZhCN">
       <!-- 日历视图 -->
-      <div id="calender" v-if="isCalendarDataPrepared">
+      <div id="calender" v-if="isCalendarDataPrepared && isCalendarView">
+        <n-gradient-text :size="36" type="warning">
+          日历视图&ensp;&ensp;
+        </n-gradient-text>
+        <n-button type="error" @click="reloadCalendar">
+          <template #icon>
+            <n-icon>
+              <refresh-icon />
+            </n-icon>
+          </template>
+          刷新
+        </n-button>
+        &ensp;&ensp;
+        <n-button color="#8a2be2" @click="isCalendarView = false">
+          <template #icon>
+            <n-icon>
+              <task-list-icon />
+            </n-icon>
+          </template>
+          任务视图
+        </n-button>
+        <div style="height: 20px"></div>
         <n-calendar
           #="{ year, month, date }"
           :default-value="calendarTime"
@@ -12,7 +33,7 @@
         >
           {{ year }}-{{ month }}-{{ date }}
           <br>
-          <n-popover trigger="hover" v-for="(item, index) in getTodoList(year, month, date)" :key="index">
+          <n-popover trigger="hover" width="300px" v-for="(item, index) in getTodoListForCalendar(year, month, date)" :key="index">
             <template #trigger>
               <span class="arrangement" v-if="item.is_finished === 0" :style="'background-color: ' + item.style">
                 {{item.title}}&ensp;&ensp;{{item.time}}
@@ -28,37 +49,42 @@
             <p>{{item.date}}&ensp;{{item.time}}</p>
             <span v-if="item.is_finished === 1" style="color: #18A058">
               已完成
+              <br>
             </span>
-            <n-button v-if="item.is_finished === 0" tertiary type="primary" @click="changeFinish(item, 1)">
-              完成
-            </n-button>
-            <n-button v-else-if="item.is_finished === 1" quaternary type="error" @click="changeFinish(item, 0)">
-              取消完成
-            </n-button>
+            <div style="display: flex; justify-content: space-between">
+              <n-button v-if="item.is_finished === 0" tertiary type="primary" @click="changeFinish(item, 1)">
+                完成
+              </n-button>
+              <n-button v-else-if="item.is_finished === 1" tertiary type="warning" @click="changeFinish(item, 0)">
+                取消完成
+              </n-button>
+              <n-button quaternary circle type="error" @click="deleteItemCalendar(item)">
+                <template #icon>
+                  <n-icon><delete-icon /></n-icon>
+                </template>
+              </n-button>
+            </div>
           </n-popover>
         </n-calendar>
       </div>
       <!-- 添加日程用的drawer -->
-      <n-drawer v-model:show="isAddItemFormShow" :width="520" placement="left">
+      <n-drawer v-model:show="isAddItemFormForCalendarShow" :width="520" placement="left">
         <n-drawer-content closable>
           <template #header>
             添加新日程到&ensp;{{selectedDate}}
           </template>
-          <n-form :model="addItemForm" label-placement="top" :rules="addItemFormRules" ref="addFormRef">
+          <n-form :model="addItemFormForCalendar" label-placement="top" :rules="addItemFormForCalendarRules" ref="addItemFormForCalendarRef">
             <n-form-item label="标题" path="title">
-              <n-input v-model:value="addItemForm.title" placeholder="输入日程标题" />
+              <n-input v-model:value="addItemFormForCalendar.title" maxlength="10" show-count placeholder="输入日程标题" />
             </n-form-item>
             <n-form-item label="内容" path="content">
-              <n-input v-model:value="addItemForm.content" placeholder="输入日程内容" type="textarea" />
+              <n-input v-model:value="addItemFormForCalendar.content" maxlength="50" show-count placeholder="输入日程内容" type="textarea" />
             </n-form-item>
-            <!-- <n-form-item label="时间" path="time">
-              <n-time-picker v-model:value="addItemForm.time" placeholder="选择时间" format="H:mm" value-format />
-            </n-form-item> -->
             <n-form-item label="时间" path="time">
-              <n-input v-model:value="addItemForm.time" placeholder="输入时间" />
+              <n-time-picker v-model:formatted-value="addItemFormForCalendar.time" placeholder="选择时间" format="HH:mm" value-format="HH:mm" />
             </n-form-item>
             <n-form-item label="标记" path="style">
-              <n-color-picker v-model:value="addItemForm.style" :show-alpha="false" />
+              <n-color-picker v-model:value="addItemFormForCalendar.style" :show-alpha="false" />
             </n-form-item>
             <n-form-item>
               <n-button type="primary" @click="addItemCalendar">确认添加</n-button>
@@ -69,18 +95,79 @@
       <!-- ====================================================================================== -->
       <!-- ====================================================================================== -->
       <!-- ====================================================================================== -->
+      <!-- todoList视图 -->
+      <div id="todolist" v-if="!isCalendarView && isTodoListDataPrepared">
+        <div id="leftAddForm">
+          <n-gradient-text :size="36" type="success">
+            新增任务
+          </n-gradient-text>
+          <div style="height: 20px"></div>
+          <n-form :model="addItemFormForTodoList" label-placement="top" :rules="addItemFormForTodoListRules" ref="addItemFormForTodoListRef">
+            <n-form-item label="时间" path="datetime">
+              <n-date-picker v-model:formatted-value="addItemFormForTodoList.datetime" type="datetime" placeholder="选择时间" format="yyyy-MM-dd HH:mm" value-format="yyyy-MM-dd HH:mm" />
+            </n-form-item>
+            <n-form-item label="标题" path="title">
+              <n-input v-model:value="addItemFormForTodoList.title" maxlength="10" show-count placeholder="输入日程标题" />
+            </n-form-item>
+            <n-form-item label="内容" path="content">
+              <n-input v-model:value="addItemFormForTodoList.content" maxlength="50" show-count placeholder="输入日程内容" type="textarea" />
+            </n-form-item>
+            <n-form-item label="标记" path="style">
+              <n-color-picker v-model:value="addItemFormForTodoList.style" :show-alpha="false" />
+            </n-form-item>
+            <n-form-item>
+              <n-button type="primary" @click="addItemTodoList">确认添加</n-button>
+            </n-form-item>
+          </n-form>
+        </div>
+        <div style="width: 2px; background: #cdcdcd"></div>
+        <div id="rightTodoList">
+          <div id="rightTodoListTitle">
+            <n-gradient-text :size="36" type="info">
+              任务列表&ensp;&ensp;
+            </n-gradient-text>
+            <n-button type="error" @click="reloadTodoList">
+              <template #icon>
+                <n-icon>
+                  <refresh-icon />
+                </n-icon>
+              </template>
+              刷新
+            </n-button>
+            &ensp;
+            &ensp;
+            <n-button color="#8a2be2" @click="isCalendarView = true">
+              <template #icon>
+                <n-icon>
+                  <calendar-icon />
+                </n-icon>
+              </template>
+              日历视图
+            </n-button>
+          </div>
+          <!-- <TodoItem title="哈哈哈" content="我哈哈大笑" :isFinished="false" date="2022-4-16" time="23:05" :style="'#00ff00'" /> -->
+          <div id="rightTodoListContent">
+            <div v-for="(item, index) in todoListData" :key="index">
+              <TodoItem :id="item.id" :title="item.title" :content="item.content" :isFinished="item.is_finished" :date="item.date" :time="item.time" :style="item.style" :changeFinish="changeTodoItemFinish" :deleteItem="deleteTodoItem" />
+            </div>
+          </div>
+        </div>
+      </div>
     </n-config-provider>
   </n-message-provider>
 </template>
 
 <script>
-import { onMounted, onUnmounted, reactive, ref } from 'vue'
+import { onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import formatDate from './util/dateFormatter'
 import MainLoading from './components/MainLoading.vue'
+import TodoItem from './components/TodoItem.vue'
 import { zhCN, dateZhCN } from 'naive-ui'
+import { Delete24Regular as DeleteIcon, TaskListRtl24Regular as TaskListIcon, CalendarLtr16Filled as CalendarIcon , ArrowClockwise12Regular as RefreshIcon} from '@vicons/fluent'
 import sqlite3 from 'sqlite3'
 
 // 这个databaseUrl是打包的时候用的
-// const databaseUrl = '../bundled/easytodo_DB.db'
+// const databaseUrl = './resources/easytodo_DB.db'
 
 // 这个databaseUrl是在开发的时候用的
 const databaseUrl = './easytodo_DB.db'
@@ -95,6 +182,188 @@ function configHandler () {
   }
 }
 
+// ======================================================= 管理todoList的函数
+function todoListHandler () {
+
+  let data = []
+  const todoListData = ref([])
+
+  const isTodoListDataPrepared = ref(false)
+  const addItemFormForTodoListRef = ref(null)
+  // 用于添加todolist日程的表单
+  const addItemFormForTodoList = reactive({
+    title: '',
+    content: '',
+    datetime: formatDate(new Date(), 'yyyy-MM-dd HH:mm'),
+    style: '#deb887',
+    is_finished: 0
+  })
+  // 添加todolist日程表单的校验规则
+  const addItemFormForTodoListRules = {
+    title: [
+      { required: true, message: '请输入任务标题', trigger: 'blur' }
+    ],
+    datetime: [
+      { required: true, message: '请选择任务时间', trigger: 'blur' }
+    ],
+    style: [
+      { required: true, message: '请选择任务标记', trigger: 'blur' }
+    ]
+  }
+
+  // 重新挂载数据
+  function refreshTodoListData () {
+    /* console.log('refreshTodoListData') */
+    isTodoListDataPrepared.value = false
+    setTimeout(() => {
+      isTodoListDataPrepared.value = true
+    }, 5)
+  }
+
+
+  // 从数据库获取数据
+  const getTodoListFromDB = () => {
+    return new Promise((resolve, reject) => {
+      DB.all('select * from todolist order by is_finished,date,time', (err, rows) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve(rows)
+        }
+      })
+    })
+  }
+
+  // 重新加载todolist
+  function reloadTodoList () {
+    isTodoListDataPrepared.value = false
+    getTodoListFromDB().then(res => {
+      // 清空todoListData
+      todoListData.value.splice(0, todoListData.value.length)
+      // 把每个元素加入todoListData
+      res.forEach(item => {
+        todoListData.value.push(item)
+      })
+      /* data = res */
+      isTodoListDataPrepared.value = true
+    }).catch(e => {
+      console.log(e)
+    })
+  }
+
+  onMounted(() => {
+    getTodoListFromDB().then(res => {
+      // 清空todoListData
+      todoListData.value.splice(0, todoListData.value.length)
+      // 把每个元素加入todoListData
+      res.forEach(item => {
+        todoListData.value.push(item)
+      })
+      /* data = res */
+      setTimeout(() => {
+        isTodoListDataPrepared.value = true
+      }, 1000)
+    }).catch(e => {
+      console.log(e)
+    })
+  })
+
+  // 获取todolist数据
+  const getTodoListForTodoList = () => {
+    /* console.log(data) */
+    return data
+  }
+
+  // 改变某个item的状态
+  const changeTodoItemFinish = (id, flag) => {
+    let str = 'update todolist set is_finished = ' + flag + ' where id = ' + id
+    DB.run(str, (err) => {
+      if (err) {
+        console.log(err)
+      } else {
+        // 找到todoListItem对应的那个元素并改变状态
+        let index = todoListData.value.findIndex(item => item.id === id)
+        if (index !== -1) {
+          todoListData.value[index].is_finished = flag
+        }
+        /* getTodoListFromDB().then(res => {
+          data = res
+          refreshTodoListData()
+        }) */
+      }
+    })
+  }
+
+  // 删除某个item
+  const deleteTodoItem = (id) => {
+    let str = 'delete from todolist where id = ' + id
+    DB.run(str, (err) => {
+      if (err) {
+        console.log(err)
+      } else {
+        // 找到todoListItem对应的那个元素并删除
+        let index = todoListData.value.findIndex(item => item.id === id)
+        if (index !== -1) {
+          todoListData.value.splice(index, 1)
+        }
+        /* getTodoListFromDB().then(res => {
+          data = res
+          refreshTodoListData()
+        }) */
+      }
+    })
+  }
+
+  // 添加todolist日程
+  const addItemTodoList = () => {
+    addItemFormForTodoListRef.value?.validate((errors) => {
+      /* console.log(errors) */
+      if (!errors) {
+        let datetime = addItemFormForTodoList.datetime.split(' ')
+        let date = datetime[0]
+        let time = datetime[1]
+        let insertStr = 'insert into todolist (title, content, date, time, style, is_finished) values ("' + addItemFormForTodoList.title + '", "' + addItemFormForTodoList.content + '", "' + date + '", "' + time + '", "' + addItemFormForTodoList.style + '", ' + addItemFormForTodoList.is_finished + ')'
+        DB.run(insertStr, (err) => {
+          if (err) {
+            console.log(err)
+          } else {
+            getTodoListFromDB().then(res => {
+              // 清空todoListData
+              todoListData.value.splice(0, todoListData.value.length)
+              // 把每个元素加入todoListData
+              res.forEach(item => {
+                todoListData.value.push(item)
+              })
+              data = res
+              refreshTodoListData()
+              // 重置表单
+              addItemFormForTodoList.title = ''
+              addItemFormForTodoList.content = ''
+              addItemFormForTodoList.datetime = formatDate(new Date(), 'yyyy-MM-dd HH:mm')
+              addItemFormForTodoList.style = '#deb887'
+              addItemFormForTodoList.is_finished = 0
+            })
+          }
+        })
+      }
+    })
+  }
+
+  return {
+    todoListData,
+    isTodoListDataPrepared,
+    getTodoListForTodoList,
+    changeTodoItemFinish,
+    deleteTodoItem,
+    refreshTodoListData,
+    reloadTodoList,
+    addItemFormForTodoListRef,
+    addItemFormForTodoList,
+    addItemFormForTodoListRules,
+    addItemTodoList
+  }
+}
+
 // ======================================================= 管理日历的函数
 function canlendarHandler () {
 
@@ -104,35 +373,31 @@ function canlendarHandler () {
   const calendarTime = ref(time)
   const selectedDate = ref('')
   const isCalendarDataPrepared = ref(false)
-  const addFormRef = ref(null)
+  const addItemFormForCalendarRef = ref(null)
   // 用于添加日程的表单
-  const addItemForm = reactive({
+  const addItemFormForCalendar = reactive({
     title: '',
     content: '',
-    time: '',
+    time: '00:00',
     date: '',
     style: '#deb887',
     is_finished: 0
   })
   // 添加日程表单的校验规则
-  const addItemFormRules = {
+  const addItemFormForCalendarRules = {
     title: [
       { required: true, message: '请输入日程标题', trigger: 'blur' }
-    ],
-    time: [
-      { required: true, message: '请选择日程时间', trigger: 'blur' },
-      { pattern: /^([0-9]|1[0-9]|2[0-3]):([0-5][0-9])$/, message: '请输入正确的时间格式，如 1:03 或 23:00', trigger: 'blur' }
     ],
     style: [
       { required: true, message: '请选择日程标记', trigger: 'blur' }
     ]
   }
-  const isAddItemFormShow = ref(false)
+  const isAddItemFormForCalendarShow = ref(false)
 
   // 从数据库获取 todolist 数据
   function getTodoListFromDB () {
     return new Promise((resolve, reject) => {
-      DB.all('select * from todolist', (err, rows) => {
+      DB.all('select * from todolist order by date,time', (err, rows) => {
         if (err) {
           reject(err)
         } else {
@@ -145,21 +410,45 @@ function canlendarHandler () {
   // 重新挂载数据
   function refreshCalendarData () {
     isCalendarDataPrepared.value = false
-    isCalendarDataPrepared.value = true
+    setTimeout(() => {
+      isCalendarDataPrepared.value = true
+    }, 5)
   }
 
-  onMounted(() => {
+  // 重新加载日历数据
+  function reloadCalendar () {
+    isCalendarDataPrepared.value = false
     getTodoListFromDB().then(res => {
       data = res
       isCalendarDataPrepared.value = true
     }).catch(e => {
       console.log(e)
     })
+  }
+
+  onMounted(() => {
+    getTodoListFromDB().then(res => {
+      data = res
+      setTimeout(() => {
+        isCalendarDataPrepared.value = true
+      }, 1000)
+    }).catch(e => {
+      console.log(e)
+    })
   })
 
   // 获取日历每个单元格的日程
-  const getTodoList = (year, month, date) => {
-    const dateStr = `${year}-${month}-${date}`
+  const getTodoListForCalendar = (year, month, date) => {
+    // 补零操作，为了让数据库的数据能匹配到界面上的数据
+    /* console.log(typeof month) */
+    if (month < 10) {
+      month = '0' + month
+    }
+    if (date < 10) {
+      date = '0' + date
+    }
+    const dateStr = year + '-' + month + '-' + date
+    /* console.log(dateStr) */
     const list = []
     for (let i = 0; i < data.length; i++) {
       if (dateStr === data[i].date) {
@@ -171,12 +460,12 @@ function canlendarHandler () {
 
   // 更改日程完成情况
   const changeFinish = (item, flag) => {
-    for (let i = 0; i < data.length; i++) {
+    /* for (let i = 0; i < data.length; i++) {
       if (JSON.stringify(item) === JSON.stringify(data[i])) {
         data[i].isFinished = flag
         break
       }
-    }
+    } */
     let updateStr = 'update todolist set is_finished = ' + flag + ' where id = ' + item.id
     DB.run(updateStr, (err) => {
       if (err) {
@@ -195,21 +484,28 @@ function canlendarHandler () {
 
   // 点击每个日期的时候发生的东西
   const clickCalendarItem = (timestamp, {year, month, date}) => {
+    // 补零操作，为了让数据库的数据能匹配到界面上的数据
+    if (month < 10) {
+      month = '0' + month
+    }
+    if (date < 10) {
+      date = '0' + date
+    }
     calendarTime.value = timestamp
     selectedDate.value = `${year}-${month}-${date}`
-    addItemForm.date = `${year}-${month}-${date}`
-    isAddItemFormShow.value = true
+    addItemFormForCalendar.date = `${year}-${month}-${date}`
+    isAddItemFormForCalendarShow.value = true
   }
 
   // 添加日程
   const addItemCalendar = () => {
-    addFormRef.value?.validate((errors) => {
+    addItemFormForCalendarRef.value?.validate((errors) => {
       console.log(errors)
       if (!errors) {
-        console.log('Valid')
-        console.log(addItemForm)
+        /* console.log('Valid')
+        console.log(addItemFormForCalendar) */
         // 校验成功，添加到数据库
-        let insertStr = 'insert into todolist (title, content, time, date, style, is_finished) values ("' + addItemForm.title + '", "' + addItemForm.content + '", "' + addItemForm.time + '", "' + addItemForm.date + '", "' + addItemForm.style + '", ' + addItemForm.is_finished + ')'
+        let insertStr = 'insert into todolist (title, content, time, date, style, is_finished) values ("' + addItemFormForCalendar.title + '", "' + addItemFormForCalendar.content + '", "' + addItemFormForCalendar.time + '", "' + addItemFormForCalendar.date + '", "' + addItemFormForCalendar.style + '", ' + addItemFormForCalendar.is_finished + ')'
         DB.run(insertStr, (err) => {
           if (err) {
             console.log(err)
@@ -219,14 +515,14 @@ function canlendarHandler () {
             data = res
             // 用于刷新
             refreshCalendarData()
-            isAddItemFormShow.value = false
+            isAddItemFormForCalendarShow.value = false
             // 重置表单
-            addItemForm.title = ''
-            addItemForm.content = ''
-            addItemForm.time = ''
-            addItemForm.date = ''
-            addItemForm.style = '#deb887'
-            addItemForm.is_finished = 0
+            addItemFormForCalendar.title = ''
+            addItemFormForCalendar.content = ''
+            addItemFormForCalendar.time = '00:00'
+            addItemFormForCalendar.date = ''
+            addItemFormForCalendar.style = '#deb887'
+            addItemFormForCalendar.is_finished = 0
           }).catch(e => {
             console.log(e)
           })
@@ -237,25 +533,51 @@ function canlendarHandler () {
     })
   }
 
+  // 删除日程
+  const deleteItemCalendar = (item) => {
+    let deleteStr = 'delete from todolist where id = ' + item.id
+    DB.run(deleteStr, (err) => {
+      if (err) {
+        console.log(err)
+        return
+      }
+      getTodoListFromDB().then(res => {
+        data = res
+        // 用于刷新
+        refreshCalendarData()
+      }).catch(e => {
+        console.log(e)
+      })
+    })
+  }
+
   return {
     calendarTime,
-    getTodoList,
+    getTodoListForCalendar,
     isCalendarDataPrepared,
     changeFinish,
-    addItemForm,
-    isAddItemFormShow,
+    addItemFormForCalendar,
+    isAddItemFormForCalendarShow,
     selectedDate,
     clickCalendarItem,
     addItemCalendar,
-    addItemFormRules,
-    addFormRef
+    addItemFormForCalendarRules,
+    addItemFormForCalendarRef,
+    deleteItemCalendar,
+    refreshCalendarData,
+    reloadCalendar
   }
 }
 
 // ======================================================= export default
 export default {
   components: {
-    MainLoading
+    MainLoading,
+    TodoItem,
+    DeleteIcon,
+    TaskListIcon,
+    CalendarIcon,
+    RefreshIcon
   },
   setup () {
 
@@ -263,8 +585,13 @@ export default {
     
     const loading = ref(true)
 
-    const { calendarTime, getTodoList, isCalendarDataPrepared, changeFinish, addItemForm, isAddItemFormShow, selectedDate, clickCalendarItem, addItemCalendar, addItemFormRules, addFormRef } = canlendarHandler()
+    const isCalendarView = ref(true)
+
+    const { calendarTime, getTodoListForCalendar, isCalendarDataPrepared, changeFinish, addItemFormForCalendar, isAddItemFormForCalendarShow, selectedDate, clickCalendarItem, addItemCalendar, addItemFormForCalendarRules, addItemFormForCalendarRef, deleteItemCalendar, reloadCalendar } = canlendarHandler()
+
     const { zhCN, dateZhCN } = configHandler()
+
+    const { todoListData, isTodoListDataPrepared, getTodoListForTodoList, changeTodoItemFinish, deleteTodoItem, reloadTodoList, addItemFormForTodoListRef, addItemFormForTodoList, addItemFormForTodoListRules, addItemTodoList } = todoListHandler()
 
     DB = new sqlite3.Database(databaseUrl, (err) => {
       if (err) {
@@ -274,37 +601,58 @@ export default {
         // 成功之后关闭加载界面
         setTimeout(() => {
           loading.value = false
-        }, 3000)
+        }, 1000)
       }
     })
 
-    /* onMounted(() => {
-      setTimeout(() => {
-        if (databaseFail) {
-          window.$message.error('抱歉，加载数据出现意外错误，请尝试重启程序')
-        }
-      }, 1000)   
-    }) */
+    watch(isCalendarView, (newVal) => {
+      /* console.log(newVal) */
+      // 为 true 证明回到日历视图
+      if (newVal) {
+        /* console.log('刷新日历') */
+        reloadCalendar()
+      } else {
+        /* console.log('刷新todolist') */
+        reloadTodoList ()
+      }
+    })
 
     onUnmounted(() => {
       DB.close()
     })
 
     return {
+      // setup
       loading,
+      isCalendarView,
+      // calendarHandler
       calendarTime,
-      getTodoList,
+      getTodoListForCalendar,
       changeFinish,
       isCalendarDataPrepared,
-      zhCN,
-      dateZhCN,
-      addItemForm,
-      isAddItemFormShow,
+      addItemCalendar,
+      deleteItemCalendar,
+      addItemFormForCalendar,
+      isAddItemFormForCalendarShow,
       selectedDate,
       clickCalendarItem,
-      addItemCalendar,
-      addItemFormRules,
-      addFormRef
+      addItemFormForCalendarRules,
+      addItemFormForCalendarRef,
+      reloadCalendar,
+      // todoListHandler
+      todoListData,
+      isTodoListDataPrepared,
+      getTodoListForTodoList,
+      changeTodoItemFinish,
+      deleteTodoItem,
+      addItemFormForTodoList,
+      addItemFormForTodoListRef,
+      addItemFormForTodoListRules,
+      addItemTodoList,
+      reloadTodoList,
+      // globalConfig
+      zhCN,
+      dateZhCN
     }
   }
 }
@@ -341,30 +689,66 @@ export default {
     justify-content: space-between;
     margin: 10px 0;
   }
+  #todolist {
+    position: relative;
+    /* display: flex;
+    justify-content: space-around;
+    flex-direction: row-reverse; */
+    width: 90%;
+    margin: auto;
+    padding: 10px 0;
+  }
+  #todolist > div {
+    width: 45%;
+  }
+  #leftAddForm {
+    position: fixed;
+    right: 5%;
+    border-left: 2px solid #ccc;
+    padding-left: 30px;
+  }
+  /* #rightTodoList {
+    position: relative;
+  } */
+  #rightTodoListTitle {
+    position: fixed;
+    left: 5%;
+    top: 0;
+    right: 50%;
+    z-index: 5;
+    padding: 10px 0;
+    background: #ffffff;
+  }
+  #rightTodoListContent {
+    /* margin-top: 100px; */
+    position: relative;
+    top: 60px;
+    right: 0;
+  }
   ::-webkit-scrollbar {
-  /*滚动条整体样式*/
-  width : 10px;  /*高宽分别对应横竖滚动条的尺寸*/
-  height: 1px;
+    /*滚动条整体样式*/
+    width: 3px;  /*高宽分别对应横竖滚动条的尺寸*/
+    height: 1px;
   }
   ::-webkit-scrollbar-thumb {
-  /*滚动条里面小方块*/
-  border-radius   : 10px;
-  background-color: rgb(139, 139, 139);
-  background-image: -webkit-linear-gradient(
-      45deg,
-      rgba(255, 255, 255, 0.2) 25%,
-      transparent 25%,
-      transparent 50%,
-      rgba(255, 255, 255, 0.2) 50%,
-      rgba(255, 255, 255, 0.2) 75%,
-      transparent 75%,
-      transparent
-  );
+    /*滚动条里面小方块*/
+    border-radius: 10px;
+    background-color: rgb(139, 139, 139);
+    background-image: -webkit-linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.2) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.2) 50%,
+        rgba(255, 255, 255, 0.2) 75%,
+        transparent 75%,
+        transparent
+    );
   }
   ::-webkit-scrollbar-track {
-  /*滚动条里面轨道*/
-  box-shadow   : inset 0 0 5px rgba(0, 0, 0, 0.2);
-  background   : #ededed;
-  border-radius: 10px;
+    /*滚动条里面轨道*/
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+    background: #ffffff;
+    border-radius: 10px;
   }
 </style>
