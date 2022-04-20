@@ -16,7 +16,8 @@ npm run electron:serve
 ```
 npm run electron:build
 ```
-打包后只有 win-unpacked 文件夹是有用的，其他都能删掉，进入程序也从 win-unpacked 里面的 exe 文件进
+注意：打包前先到 App.vue 中更换一下 databaseUrl ，ctrl+F 找一下就能找到。
+打包后只有 win-unpacked 文件夹是有用的，其他都能删掉，进入程序也从 win-unpacked 里面的 exe 文件进。
 
 ## 软件游玩
 日历视图和任务视图的数据是同步的，只是叫法不同。
